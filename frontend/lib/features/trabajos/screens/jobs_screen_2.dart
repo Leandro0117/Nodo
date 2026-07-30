@@ -3,9 +3,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nodo/core/theme/app_theme.dart';
 import 'package:nodo/features/trabajos/screens/job_detail_screen.dart';
 import 'package:nodo/features/trabajos/screens/category_filter_screen.dart';
+import 'package:nodo/features/posts/utils/post_format_utils.dart';
 import 'package:nodo/features/trabajos/logic/job_filter.dart';
 import 'package:nodo/features/trabajos/logic/job_service.dart';
 import 'package:nodo/features/trabajos/widgets/joblist.dart';
+import 'package:nodo/features/trabajos/widgets/postulacion_list.dart';
 import 'package:nodo/shared/providers/user_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -109,7 +111,9 @@ class _JobsScreen2State extends State<JobsScreen2> {
       if (_filter.minPrice != null && budget < _filter.minPrice!) return false;
       if (_filter.maxPrice != null &&
           _filter.maxPrice! > 0 &&
-          budget > _filter.maxPrice!) return false;
+          budget > _filter.maxPrice!) {
+        return false;
+      }
       // Tiempo de publicación
       if (_filter.timeFilter != null) {
         final postDate = DateTime.tryParse(pub['postDate'] ?? '');
@@ -152,21 +156,15 @@ class _JobsScreen2State extends State<JobsScreen2> {
         ? categories[0]['specificCategoryId'].toString()
         : '';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.75,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (_, scrollController) => JobDetailScreen(
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => JobDetailScreen(
           job: {
             "id": publicacion['id'],
             "title": publicacion['title'],
             "description": publicacion['description'],
-            "price": "\$${publicacion['budget']}",
+            "price": "\$${formatBudget(publicacion['budget'])}",
             "location": "${publicacion['location']}",
             "user": "Nombre del cliente: $nombreCliente",
             "time":
@@ -175,7 +173,6 @@ class _JobsScreen2State extends State<JobsScreen2> {
             "images": _parseImages(publicacion['photos']),
           },
           postulacion: postulacion,
-          scrollController: scrollController,
           desdePostulaciones: desdePostulaciones,
           onPostulacionCambiada: _loadAllData,
         ),
@@ -207,10 +204,12 @@ class _JobsScreen2State extends State<JobsScreen2> {
         .where((pub) => !_postulaciones.any((p) => p['postId'] == pub['id']))
         .toList();
     final disponiblesCount = _applyFilter(disponiblesRaw).length;
-    final postulacionesCount =
-        _postulaciones.where((p) => p['status'] != 'accepted').length;
-    final misTrabajosCount =
-        _postulaciones.where((p) => p['status'] == 'accepted').length;
+    final postulacionesCount = _postulaciones
+        .where((p) => p['status'] != 'accepted' && p['status'] != 'finished')
+        .length;
+    final misTrabajosCount = _postulaciones
+        .where((p) => p['status'] == 'accepted' || p['status'] == 'finished')
+        .length;
     final counts = [disponiblesCount, postulacionesCount, misTrabajosCount];
 
     return Scaffold(
@@ -448,16 +447,16 @@ class _JobsScreen2State extends State<JobsScreen2> {
   }
 
   Widget _buildPostulacionesList() {
-    final pendientes = _postulaciones
-        .where((p) => p['status'] != 'accepted')
+    final items = _postulaciones
+        .where((p) => p['status'] != 'accepted' && p['status'] != 'finished')
         .map((p) {
           final pub = _publicaciones.firstWhere(
               (pub) => pub['id'] == p['postId'],
               orElse: () => null);
-          if (pub != null) pub['estado_postulacion'] = p['status'];
-          return pub;
+          if (pub == null) return null;
+          return {'pub': pub, 'postulacion': p};
         })
-        .where((pub) => pub != null)
+        .whereType<Map<String, dynamic>>()
         .toList();
 
     return RefreshIndicator(
@@ -467,27 +466,37 @@ class _JobsScreen2State extends State<JobsScreen2> {
           ? const Center(child: CircularProgressIndicator())
           : _errorMessagePostulaciones.isNotEmpty
               ? _errorState(_errorMessagePostulaciones)
-              : pendientes.isEmpty
+              : items.isEmpty
                   ? _emptyState(
                       Icons.send_outlined,
                       'Aún no te has postulado',
                       'Explora los trabajos disponibles y postúlate para comenzar.',
                     )
-                  : JobList(
-                      publicaciones: pendientes,
+                  : PostulacionList(
+                      items: items,
                       nombresClientes: _nombresClientes,
-                      onVerDetalles: _mostrarDetalleDesdePostulacion,
+                      onVerDetalles: (pub, nombre) {
+                        final postulacion = _postulaciones.firstWhere(
+                          (p) => p['postId'] == pub['id'],
+                          orElse: () => null,
+                        );
+                        _mostrarDetalleTrabajo(pub, nombre, postulacion, true);
+                      },
                     ),
     );
   }
 
   Widget _buildMisTrabajosList() {
-    final trabajos = _postulaciones
-        .where((p) => p['status'] == 'accepted')
-        .map((p) => _publicaciones.firstWhere(
-            (pub) => pub['id'] == p['postId'],
-            orElse: () => null))
-        .where((pub) => pub != null)
+    final items = _postulaciones
+        .where((p) => p['status'] == 'accepted' || p['status'] == 'finished')
+        .map((p) {
+          final pub = _publicaciones.firstWhere(
+              (pub) => pub['id'] == p['postId'],
+              orElse: () => null);
+          if (pub == null) return null;
+          return {'pub': pub, 'postulacion': p};
+        })
+        .whereType<Map<String, dynamic>>()
         .toList();
 
     return RefreshIndicator(
@@ -497,16 +506,22 @@ class _JobsScreen2State extends State<JobsScreen2> {
           ? const Center(child: CircularProgressIndicator())
           : _errorMessagePostulaciones.isNotEmpty
               ? _errorState(_errorMessagePostulaciones)
-              : trabajos.isEmpty
+              : items.isEmpty
                   ? _emptyState(
                       Icons.construction_outlined,
                       'Sin trabajos asignados',
                       'Cuando un cliente te acepte, el trabajo aparecerá aquí.',
                     )
-                  : JobList(
-                      publicaciones: trabajos,
+                  : PostulacionList(
+                      items: items,
                       nombresClientes: _nombresClientes,
-                      onVerDetalles: _mostrarDetalleDesdePostulacion,
+                      onVerDetalles: (pub, nombre) {
+                        final postulacion = _postulaciones.firstWhere(
+                          (p) => p['postId'] == pub['id'],
+                          orElse: () => null,
+                        );
+                        _mostrarDetalleTrabajo(pub, nombre, postulacion, true);
+                      },
                     ),
     );
   }

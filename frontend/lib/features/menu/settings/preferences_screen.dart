@@ -255,7 +255,7 @@ class _UbicacionDialogState extends State<_UbicacionDialog> {
       title: Text('Ubicación preferida',
           style: AppTypography.title.copyWith(color: AppColors.blue)),
       content: DropdownButtonFormField<String>(
-        value: widget.locations.any((l) => l.name == _selected)
+        initialValue: widget.locations.any((l) => l.name == _selected)
             ? _selected
             : null,
         hint: Text('Selecciona un municipio',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nodo/core/theme/app_theme.dart';
+import 'package:nodo/features/posts/utils/post_format_utils.dart';
 import 'package:nodo/features/trabajos/logic/job_service.dart';
 
 class JobList extends StatelessWidget {
@@ -81,7 +82,8 @@ class _JobCard extends StatelessWidget {
     final String tiempo =
         JobService.formatTimeAgo(publicacion['postDate'] ?? '');
     final budget = publicacion['budget'];
-    final String presupuesto = budget != null ? '\$$budget' : '';
+    final String presupuesto =
+        budget != null ? '\$${formatBudget(budget)}' : '';
 
     final categories = (publicacion['categories'] as List?) ?? [];
     final String categoria = categories.isNotEmpty
