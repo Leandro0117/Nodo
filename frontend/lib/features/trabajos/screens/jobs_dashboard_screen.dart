@@ -11,14 +11,14 @@ import 'package:nodo/features/trabajos/widgets/postulacion_list.dart';
 import 'package:nodo/shared/providers/user_provider.dart';
 import 'package:provider/provider.dart';
 
-class JobsScreen2 extends StatefulWidget {
-  const JobsScreen2({super.key});
+class JobsDashboardScreen extends StatefulWidget {
+  const JobsDashboardScreen({super.key});
 
   @override
-  State<JobsScreen2> createState() => _JobsScreen2State();
+  State<JobsDashboardScreen> createState() => _JobsDashboardScreenState();
 }
 
-class _JobsScreen2State extends State<JobsScreen2> {
+class _JobsDashboardScreenState extends State<JobsDashboardScreen> {
   List<dynamic> _publicaciones = [];
   Map<String, String> _nombresClientes = {};
   bool _isLoading = true;

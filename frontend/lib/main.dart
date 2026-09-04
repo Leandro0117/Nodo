@@ -24,7 +24,7 @@ import 'package:nodo/features/posts/logic/posts_service.dart';
 import 'package:nodo/features/register/logic/profile_picture_controller.dart';
 import 'package:nodo/features/register/logic/register_controller.dart';
 import 'package:nodo/features/register/logic/validation_controller.dart';
-import 'package:nodo/features/trabajos/screens/jobs_screen_2.dart';
+import 'package:nodo/features/trabajos/screens/jobs_dashboard_screen.dart';
 import 'package:nodo/features/trabajos/screens/thanks_screen.dart';
 import 'package:nodo/core/services/notification_service.dart';
 import 'package:nodo/shared/providers/categorie_provider.dart';
@@ -147,7 +147,7 @@ class MyApp extends StatelessWidget {
             AppRoutes.welcome: (context) => const WelcomeScreen(),
             AppRoutes.login: (context) => const LoginScreen(),
             '/home': (context) => const HomeScreen(),
-            '/trabajos2': (context) => const JobsScreen2(),
+            '/trabajos2': (context) => const JobsDashboardScreen(),
             '/trabajos5': (context) => const ThanksScreen(),
             '/gracias': (context) => ThanksScreen(),
             '/workWNodo': (context) => const WorkWtNodo(),
