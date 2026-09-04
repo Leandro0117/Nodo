@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:nodo/features/create_post/logic/create_post_service.dart';
 import 'package:nodo/features/posts/logic/posts_controller.dart';
 import 'package:nodo/features/posts/utils/post_format_utils.dart';
@@ -22,7 +22,7 @@ class CreatePostController extends ChangeNotifier {
   final descripcionController = TextEditingController();
 
   List<String> selectedCategories = [];
-  List<File> localImages = []; // imágenes locales
+  List<XFile> localImages = []; // imágenes locales
   List<String> imageUrls = []; // URLs tras subida
 
   void setErrorMessage(String? message) {
@@ -54,7 +54,7 @@ class CreatePostController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setLocalImages(List<File> files) {
+  void setLocalImages(List<XFile> files) {
     localImages = files;
     notifyListeners();
   }
@@ -109,7 +109,7 @@ class CreatePostController extends ChangeNotifier {
 
       final id = await _service.createPost(data);
       createdPostId = id;
-
+      
       if (localImages.isNotEmpty) {
         final urls = await _service.uploadImagesToFirebase(id!, localImages);
         if (urls.isNotEmpty) {

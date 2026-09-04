@@ -1,10 +1,10 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../core/constants/api_constants.dart';
-import 'dart:io';
-import 'package:path/path.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../core/utils/image_utils.dart';
+import 'package:flutter/material.dart';
 
 class CreatePostService {
   // Crear la publicación y devolver el ID
@@ -51,31 +51,32 @@ class CreatePostService {
     await http.delete(Uri.parse(ApiConstants.deletePost(postId)));
   }
 
+  // Trabaja con XFile (y no dart:io File) para que la subida funcione tanto
+  // en mobile/desktop como en Flutter Web, donde no existe un filesystem real.
   Future<List<String>> uploadImagesToFirebase(
-      String postId, List<File> localImages) async {
+      String postId, List<XFile> localImages) async {
     List<String> urls = [];
 
     try {
-      for (final imagen in localImages) {
-        // Convertir a WebP antes de subir
-        final imagenWebP = await ImageUtils.convertToAWebP(imagen);
+      for (int i = 0; i < localImages.length; i++) {
+        final bytes = await localImages[i].readAsBytes();
+        final webpBytes = await ImageUtils.convertToWebPBytes(bytes);
 
-        final fileName = basename(imagenWebP.path);
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_$i.webp';
         final ref = FirebaseStorage.instance
             .ref()
             .child('publicaciones/$postId/$fileName');
 
-        final uploadTask = ref.putFile(imagenWebP);
+        final uploadTask = ref.putData(
+          webpBytes,
+          SettableMetadata(contentType: 'image/webp'),
+        );
         final snapshot = await uploadTask;
         final url = await snapshot.ref.getDownloadURL();
         urls.add(url);
-
-        // Eliminar archivo temporal después de subir
-        if (await imagenWebP.exists()) {
-          await imagenWebP.delete();
-        }
       }
     } catch (e) {
+      debugPrint(e.toString());
       throw Exception('No se pudo cargar la imagen. Inténtalo de nuevo.');
     }
 

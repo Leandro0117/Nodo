@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:nodo/features/create_post/logic/create_post_service.dart';
 import 'package:nodo/features/posts/logic/posts_controller.dart';
 import 'package:nodo/features/posts/utils/post_format_utils.dart';
@@ -45,7 +45,7 @@ class EditPostController extends ChangeNotifier {
 
   List<String> selectedCategories = [];
   List<String> existingPhotos = [];
-  List<File> newLocalImages = [];
+  List<XFile> newLocalImages = [];
 
   void setErrorMessage(String? message) {
     errorMessage = message;
@@ -67,7 +67,7 @@ class EditPostController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setNewLocalImages(List<File> files) {
+  void setNewLocalImages(List<XFile> files) {
     newLocalImages = files;
     notifyListeners();
   }

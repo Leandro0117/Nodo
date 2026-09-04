@@ -6,8 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:nodo/core/theme/app_theme.dart';
 
 class UploadPhotoWidget extends StatefulWidget {
-  final Function(List<File>) onImagesSelected;
-  final List<File> initialImages;
+  final Function(List<XFile>) onImagesSelected;
+  final List<XFile> initialImages;
 
   const UploadPhotoWidget({
     super.key,
@@ -21,7 +21,7 @@ class UploadPhotoWidget extends StatefulWidget {
 
 class _UploadPhotoWidgetState extends State<UploadPhotoWidget> {
   final ImagePicker _picker = ImagePicker();
-  List<File> _images = [];
+  List<XFile> _images = [];
 
   @override
   void initState() {
@@ -32,8 +32,7 @@ class _UploadPhotoWidgetState extends State<UploadPhotoWidget> {
   Future<void> _selectImages() async {
     final selected = await _picker.pickMultiImage();
     if (selected.isNotEmpty) {
-      final newImages = selected.map((x) => File(x.path)).toList();
-      setState(() => _images = [..._images, ...newImages]);
+      setState(() => _images = [..._images, ...selected]);
       widget.onImagesSelected(_images);
     }
   }
@@ -45,7 +44,7 @@ class _UploadPhotoWidgetState extends State<UploadPhotoWidget> {
     });
   }
 
-  Widget _buildThumbnail(File imagen, int index) {
+  Widget _buildThumbnail(XFile imagen, int index) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -72,7 +71,7 @@ class _UploadPhotoWidgetState extends State<UploadPhotoWidget> {
                     fit: BoxFit.cover,
                   )
                 : Image.file(
-                    imagen,
+                    File(imagen.path),
                     width: 72.w,
                     height: 72.h,
                     fit: BoxFit.cover,
