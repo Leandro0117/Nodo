@@ -9,10 +9,10 @@
 -- intentar un cast uuid->int.
 
 -- Elimina los FKs que referencian las columnas que cambian de tipo.
-ALTER TABLE "category_hierarchy" DROP CONSTRAINT IF EXISTS "category_hierarchy_generalCategoryId_fkey";
-ALTER TABLE "category_hierarchy" DROP CONSTRAINT IF EXISTS "category_hierarchy_specificCategoryId_fkey";
-ALTER TABLE "worker_category" DROP CONSTRAINT IF EXISTS "worker_category_generalCategoryId_fkey";
-ALTER TABLE "post_category" DROP CONSTRAINT IF EXISTS "post_category_specificCategoryId_fkey";
+ALTER TABLE "category_hierarchy" DROP CONSTRAINT IF EXISTS "category_hierarchy_general_category_id_fkey";
+ALTER TABLE "category_hierarchy" DROP CONSTRAINT IF EXISTS "category_hierarchy_specific_category_id_fkey";
+ALTER TABLE "worker_category" DROP CONSTRAINT IF EXISTS "worker_category_general_category_id_fkey";
+ALTER TABLE "post_category" DROP CONSTRAINT IF EXISTS "post_category_specific_category_id_fkey";
 
 -- general_category: uuid -> serial (autoincremental)
 ALTER TABLE "general_category" DROP CONSTRAINT IF EXISTS "general_category_pkey";
