@@ -1,9 +1,12 @@
 // services/storageService.js
-import bucket from "../utils/firebase.js";
+import bucket, { firebaseEnabled } from "../utils/firebase.js";
 import path from "path";
 import { lookup } from "mime-types";
 
 export async function generateUploadUrl(fileName) {
+  if (!firebaseEnabled) {
+    throw new Error('Firebase deshabilitado: falta backend/serviceAccount.json');
+  }
   const file = bucket.file(`perfiles/${fileName.toLowerCase()}`);
 
   const extension = path.extname(fileName).toLowerCase();
