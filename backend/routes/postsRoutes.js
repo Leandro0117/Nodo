@@ -12,13 +12,13 @@ import {
 
 const postRouter = Router ();
 
-postRouter.get('/api/getPosts', getPosts);
-postRouter.get('/api/getPostsForWorker/:workerId', getPostsForWorker);
-postRouter.get('/api/getPost/:id', getPost);
-postRouter.get('/api/getPostsByUserId/:id', getPostsByUserId);
-postRouter.post('/api/createPost', createPost);
-postRouter.delete('/api/deletePost/:id', deletePost);
-postRouter.put('/api/updatePost/:id', updatePost);
-postRouter.post('/api/addPostPhotos/:id', addPostPhotos);
+postRouter.get('/api/posts', getPosts);
+postRouter.get('/api/postsForWorker/:workerId', getPostsForWorker);
+postRouter.get('/api/post/:id', getPost);
+postRouter.get('/api/postsByUserId/:id', getPostsByUserId);
+postRouter.post('/api/post', createPost);
+postRouter.delete('/api/post/:id', deletePost);
+postRouter.put('/api/post/:id', updatePost);
+postRouter.post('/api/postPhotos/:id', addPostPhotos);
 
 export default postRouter;

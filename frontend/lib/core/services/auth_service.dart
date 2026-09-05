@@ -61,7 +61,7 @@ class AuthService {
     if (tokenGuardado == nuevoToken) return;
 
     final response = await http.post(
-      Uri.parse(ApiConstants.saveToken),
+      Uri.parse(ApiConstants.token),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'userId': userId, 'token': nuevoToken}),
     );
@@ -75,8 +75,8 @@ class AuthService {
 
   Future<void> _deleteTokenFCM(String userId) async {
     await FirebaseMessaging.instance.deleteToken();
-    await http.put(
-      Uri.parse(ApiConstants.deleteToken),
+    await http.delete(
+      Uri.parse(ApiConstants.token),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'userId': userId}),
     );

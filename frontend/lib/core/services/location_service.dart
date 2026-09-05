@@ -5,7 +5,7 @@ import '../constants/api_constants.dart';
 
 class LocationService {
   Future<List<Location>> obtenerUbicaciones() async {
-    final response = await http.get(Uri.parse(ApiConstants.getLocations));
+    final response = await http.get(Uri.parse(ApiConstants.locations));
 
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);

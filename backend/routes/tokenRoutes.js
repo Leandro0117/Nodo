@@ -6,8 +6,8 @@ import {
 
 const tokenRouter = Router ();
 
-tokenRouter.post('/api/saveToken', saveToken);
-tokenRouter.put('/api/deleteToken', deleteToken);
+tokenRouter.post('/api/token', saveToken);
+tokenRouter.delete('/api/token', deleteToken);
 
 
 export default tokenRouter;

@@ -5,7 +5,7 @@ import '../constants/api_constants.dart';
 
 class UserService {
   Future<User> getUser(String id) async {
-    final response = await http.get(Uri.parse(ApiConstants.getUser(id)));
+    final response = await http.get(Uri.parse(ApiConstants.user(id)));
 
     if (response.statusCode == 200) {
       return User.fromJson(jsonDecode(response.body));
@@ -15,7 +15,7 @@ class UserService {
 
   Future<void> updateUser(String id, Map<String, dynamic> data) async {
     final response = await http.put(
-      Uri.parse(ApiConstants.updateUser(id)),
+      Uri.parse(ApiConstants.user(id)),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );

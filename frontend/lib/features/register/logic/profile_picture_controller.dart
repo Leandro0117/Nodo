@@ -98,7 +98,7 @@ class ProfilePictureController extends ChangeNotifier {
   /// Enviar URL de la imagen al backend
   Future<void> sendImageToBackend(String id, String urlFoto) async {
     debugPrint("Enviando URL de imagen al backend para el usuario: $id");
-    final String apiUrl = ApiConstants.updateUser(id);
+    final String apiUrl = ApiConstants.user(id);
     try {
       final response = await http.put(
         Uri.parse(apiUrl),

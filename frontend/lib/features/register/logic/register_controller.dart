@@ -69,7 +69,7 @@ class RegisterController extends ChangeNotifier {
 
       final registerProvider = Provider.of<RegisterProvider>(context, listen: false);
 
-      final url = Uri.parse(ApiConstants.createUser);
+      final url = Uri.parse(ApiConstants.user());
 
       final response = await http.post(
         url,
@@ -139,7 +139,7 @@ class RegisterController extends ChangeNotifier {
       String workerId, List<String> generalCategoryIds) async {
     try {
       final response = await http.post(
-        Uri.parse(ApiConstants.createWorkerCategory),
+        Uri.parse(ApiConstants.workerCategory),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "workerId": workerId,

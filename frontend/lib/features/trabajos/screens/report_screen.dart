@@ -62,7 +62,7 @@ class _ReportScreenState extends State<ReportScreen> {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.id;
     if (userId == null) return;
 
-    final url = Uri.parse(ApiConstants.createReport);
+    final url = Uri.parse(ApiConstants.report);
 
     try {
       final response = await http.post(

@@ -8,7 +8,7 @@ class GeneralCategoryService {
   Future<List<Categorie>> obtenerCategorias() async {
     debugPrint('Obteniendo categorías generales desde el servicio...');
     final response = await http
-        .get(Uri.parse(ApiConstants.getGeneralCategories))
+        .get(Uri.parse(ApiConstants.generalCategories))
         .timeout(const Duration(seconds: 3));
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);

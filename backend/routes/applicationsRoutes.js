@@ -12,11 +12,11 @@ import {
 const applicationRouter = Router ();
 
 applicationRouter.post('/api/apply', apply);
-applicationRouter.get('/api/getApplication/:id', getApplication);
-applicationRouter.get('/api/getApplications', getApplications);
-applicationRouter.get('/api/getApplicationsByUserId/:id', getApplicationsByUserId);
-applicationRouter.get('/api/getApplicationsByPostId/:id', getApplicationsByPostId);
-applicationRouter.put('/api/updateApplication/:id', updateApplication);
-applicationRouter.delete('/api/deleteApplication/:id', deleteApplication);
+applicationRouter.get('/api/application/:id', getApplication);
+applicationRouter.get('/api/applications', getApplications);
+applicationRouter.get('/api/applicationsByUserId/:id', getApplicationsByUserId);
+applicationRouter.get('/api/applicationsByPostId/:id', getApplicationsByPostId);
+applicationRouter.put('/api/application/:id', updateApplication);
+applicationRouter.delete('/api/application/:id', deleteApplication);
 
 export default applicationRouter;

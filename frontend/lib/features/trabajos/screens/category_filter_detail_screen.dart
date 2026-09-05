@@ -31,7 +31,7 @@ class _CategoryFilterDetailScreenState
   Future<void> _fetchCategorias() async {
     try {
       final response = await http.get(
-        Uri.parse(ApiConstants.getSpecificCategories),
+        Uri.parse(ApiConstants.specificCategories),
         headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode == 200) {

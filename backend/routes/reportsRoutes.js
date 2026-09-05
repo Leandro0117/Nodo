@@ -8,9 +8,9 @@ import {
 
 const reportRouter = Router ();
 
-reportRouter.get('/api/getReports', getReports);
-reportRouter.get('/api/getReport/:id', getReport);
-reportRouter.get('/api/getReportByPostId/:id', getReportByPostId);
-reportRouter.post('/api/createReport', createReport);
+reportRouter.get('/api/reports', getReports);
+reportRouter.get('/api/report/:id', getReport);
+reportRouter.get('/api/reportByPostId/:id', getReportByPostId);
+reportRouter.post('/api/report', createReport);
 
 export default reportRouter;

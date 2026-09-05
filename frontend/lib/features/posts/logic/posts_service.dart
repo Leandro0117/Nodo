@@ -11,7 +11,7 @@ class PostsService {
   Future<List<dynamic>> getPostsByUserId() async {
     final userId = userProvider.user!.id;
     final response = await http.get(
-      Uri.parse(ApiConstants.getPostsByUserId(userId)),
+      Uri.parse(ApiConstants.postsByUserId(userId)),
     );
 
     if (response.statusCode == 200) {
@@ -31,7 +31,7 @@ class PostsService {
 
   Future<bool> deletePost(String postId) async {
     final response = await http.delete(
-      Uri.parse(ApiConstants.deletePost(postId)),
+      Uri.parse(ApiConstants.post(postId)),
     );
     return response.statusCode == 200;
   }
@@ -47,7 +47,7 @@ class PostsService {
 
   Future<bool> updatePost(
       String postId, Map<String, dynamic> data) async {
-    final url = Uri.parse(ApiConstants.updatePost(postId));
+    final url = Uri.parse(ApiConstants.post(postId));
 
     final response = await http.put(
       url,

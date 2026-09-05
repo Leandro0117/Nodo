@@ -12,15 +12,15 @@ import {
 
 const categoryRouter = Router ();
 
-categoryRouter.get('/api/getGeneralCategories', getGeneralCategories);
-categoryRouter.get('/api/getGeneralCategory/:id', getGeneralCategory);
-categoryRouter.post('/api/createGeneralCategory', createGeneralCategory);
+categoryRouter.get('/api/generalCategories', getGeneralCategories);
+categoryRouter.get('/api/generalCategory/:id', getGeneralCategory);
+categoryRouter.post('/api/generalCategory', createGeneralCategory);
 
-categoryRouter.get('/api/getSpecificCategories', getSpecificCategories);
-categoryRouter.get('/api/getSpecificCategory/:id', getSpecificCategory);
-categoryRouter.post('/api/createSpecificCategory', createSpecificCategory);
+categoryRouter.get('/api/specificCategories', getSpecificCategories);
+categoryRouter.get('/api/specificCategory/:id', getSpecificCategory);
+categoryRouter.post('/api/specificCategory', createSpecificCategory);
 
-categoryRouter.get('/api/getWorkerCategories', getWorkerCategories);
-categoryRouter.post('/api/createWorkerCategory', createWorkerCategory);
+categoryRouter.get('/api/workerCategories', getWorkerCategories);
+categoryRouter.post('/api/workerCategory', createWorkerCategory);
 
 export default categoryRouter;

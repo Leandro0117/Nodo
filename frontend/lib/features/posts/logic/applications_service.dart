@@ -6,7 +6,7 @@ import 'package:nodo/features/posts/models/job_application.dart';
 class ApplicationsService {
   Future<List<JobApplication>> getApplicationsByPostId(String postId) async {
     final response = await http.get(
-      Uri.parse(ApiConstants.getApplicationsByPostId(postId)),
+      Uri.parse(ApiConstants.applicationsByPostId(postId)),
     );
 
     if (response.statusCode == 204) {
@@ -24,7 +24,7 @@ class ApplicationsService {
   Future<bool> updateApplicationStatus(
       String applicationId, String newStatus) async {
     final response = await http.put(
-      Uri.parse(ApiConstants.updateApplication(applicationId)),
+      Uri.parse(ApiConstants.application(applicationId)),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'status': newStatus}),
     );

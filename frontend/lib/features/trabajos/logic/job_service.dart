@@ -40,7 +40,7 @@ class JobService {
     debugPrint("💬Eliminando postulación...");
     try {
       final response = await http.delete(
-        Uri.parse(ApiConstants.deleteApplication(applicationId)),
+        Uri.parse(ApiConstants.application(applicationId)),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -65,7 +65,7 @@ class JobService {
   static Future<void> acceptApplication(
       String applicationId, String newStatus) async {
     final url =
-        Uri.parse(ApiConstants.updateApplication(applicationId));
+        Uri.parse(ApiConstants.application(applicationId));
 
     final response = await http.put(
       url,
@@ -83,7 +83,7 @@ class JobService {
   static Future<List<dynamic>> fetchPosts() async {
     debugPrint("💬 Haciendo fetch a publicaciones");
     final response = await http.get(
-      Uri.parse(ApiConstants.getPosts),
+      Uri.parse(ApiConstants.posts),
       headers: {'Content-Type': 'application/json'},
     );
     debugPrint("💬 PubLicaciones: ");
@@ -99,7 +99,7 @@ class JobService {
   static Future<List<dynamic>> fetchPostsForWorker(String workerId) async {
     debugPrint("💬 Haciendo fetch a publicaciones para trabajador $workerId");
     final response = await http.get(
-      Uri.parse(ApiConstants.getPostsForWorker(workerId)),
+      Uri.parse(ApiConstants.postsForWorker(workerId)),
       headers: {'Content-Type': 'application/json'},
     );
     if (response.statusCode == 200) {
@@ -118,7 +118,7 @@ class JobService {
         posts.map((p) => p['clientId']).toSet().toList();
     for (final clientId in clientIds) {
       final response = await http.get(
-        Uri.parse(ApiConstants.getUser(clientId)),
+        Uri.parse(ApiConstants.user(clientId)),
         headers: {'Content-Type': 'application/json'},
       );
       debugPrint("Usuario");
@@ -139,7 +139,7 @@ class JobService {
   static Future<List<dynamic>> fetchApplicationsByUser(
       String userId) async {
     final response = await http.get(
-      Uri.parse(ApiConstants.getApplicationsByUserId(userId)),
+      Uri.parse(ApiConstants.applicationsByUserId(userId)),
       headers: {
         'Content-Type': 'application/json',
       },

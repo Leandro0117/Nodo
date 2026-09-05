@@ -43,7 +43,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final response = await http.get(
       Uri.parse(
-          ApiConstants.getNotificationsByUserId(userProvider.user?.id ?? '')),
+          ApiConstants.notificationsByUserId(userProvider.user?.id ?? '')),
     );
     if (response.statusCode == 200) return jsonDecode(response.body);
     throw Exception('Failed to load notifications');

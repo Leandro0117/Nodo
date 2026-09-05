@@ -7,9 +7,9 @@ import {
 
 const notificationRouter = express.Router();
 
-notificationRouter.post('/api/createNotification', createNotification);
-notificationRouter.get('/api/getNotificationsByUserId/:userId', getNotificationsByUserId);
-notificationRouter.get('/api/getNotifications', getNotifications);
+notificationRouter.post('/api/notification', createNotification);
+notificationRouter.get('/api/notificationsByUserId/:userId', getNotificationsByUserId);
+notificationRouter.get('/api/notifications', getNotifications);
 
 
 export default notificationRouter;

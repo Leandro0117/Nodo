@@ -3,53 +3,59 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class ApiConstants {
   static String get baseUrl => dotenv.env['API_BASE_URL']!;
 
+  // Auth
   static String get login => "$baseUrl/login";
-  static String get createUser => "$baseUrl/createUser";
-  static String updateUser(String id) => "$baseUrl/updateUser/$id";
-  static String getUser(String id) => "$baseUrl/getUser/$id";
+  static String get resetPassword => "$baseUrl/resetPassword";
+  // POST guarda el token FCM, DELETE lo elimina.
+  static String get token => "$baseUrl/token";
+
+  // Usuarios
+  static String user([String? id]) =>
+      id == null ? "$baseUrl/user" : "$baseUrl/user/$id";
   static String activateWorker(String id) => "$baseUrl/activateWorker/$id";
-  static String get getWorkerByUserId => "$baseUrl/getWorkerByUserId";
+  static String get workerByUserId => "$baseUrl/workerByUserId";
 
-  static String get createPost => "$baseUrl/createPost";
-  static String get getPosts => "$baseUrl/getPosts";
-  static String getPostsForWorker(String workerId) => "$baseUrl/getPostsForWorker/$workerId";
-  static String getPostsByUserId(String id) => "$baseUrl/getPostsByUserId/$id";
-  static String updatePost(String id) => "$baseUrl/updatePost/$id";
-  static String deletePost(String id) => "$baseUrl/deletePost/$id";
+  // Publicaciones
+  static String get posts => "$baseUrl/posts";
+  static String post([String? id]) =>
+      id == null ? "$baseUrl/post" : "$baseUrl/post/$id";
+  static String postsForWorker(String workerId) =>
+      "$baseUrl/postsForWorker/$workerId";
+  static String postsByUserId(String id) => "$baseUrl/postsByUserId/$id";
 
-  static String get getGeneralCategories => "$baseUrl/getGeneralCategories";
-  static String getGeneralCategory(String id) => "$baseUrl/getGeneralCategory/$id";
-  static String get createGeneralCategory => "$baseUrl/createGeneralCategory";
+  // Categorías
+  static String get generalCategories => "$baseUrl/generalCategories";
+  static String generalCategory([String? id]) =>
+      id == null ? "$baseUrl/generalCategory" : "$baseUrl/generalCategory/$id";
 
-  static String get getSpecificCategories => "$baseUrl/getSpecificCategories";
-  static String getSpecificCategory(String id) => "$baseUrl/getSpecificCategory/$id";
-  static String get createSpecificCategory => "$baseUrl/createSpecificCategory";
+  static String get specificCategories => "$baseUrl/specificCategories";
+  static String specificCategory([String? id]) => id == null
+      ? "$baseUrl/specificCategory"
+      : "$baseUrl/specificCategory/$id";
 
-  static String get getWorkerCategories => "$baseUrl/getWorkerCategories";
-  static String get createWorkerCategory => "$baseUrl/createWorkerCategory";
+  static String get workerCategories => "$baseUrl/workerCategories";
+  static String get workerCategory => "$baseUrl/workerCategory";
 
-  static String get getLocations => "$baseUrl/getLocations";
+  // Ubicaciones
+  static String get locations => "$baseUrl/locations";
 
+  // Postulaciones y trabajos
   static String get apply => "$baseUrl/apply";
   static String get finishJob => "$baseUrl/finishJob";
-  static String getApplicationsByPostId(String id) =>
-      "$baseUrl/getApplicationsByPostId/$id";
-  static String getApplicationsByUserId(String id) =>
-      "$baseUrl/getApplicationsByUserId/$id";
-  static String updateApplication(String id) =>
-      "$baseUrl/updateApplication/$id";
-  static String deleteApplication(String id) =>
-      "$baseUrl/deleteApplication/$id";
+  static String application(String id) => "$baseUrl/application/$id";
+  static String applicationsByPostId(String id) =>
+      "$baseUrl/applicationsByPostId/$id";
+  static String applicationsByUserId(String id) =>
+      "$baseUrl/applicationsByUserId/$id";
 
-  static String getNotificationsByUserId(String id) =>
-      "$baseUrl/getNotificationsByUserId/$id";
-  static String get saveToken => "$baseUrl/saveToken";
-  static String get deleteToken => "$baseUrl/deleteToken";
+  // Notificaciones
+  static String notificationsByUserId(String id) =>
+      "$baseUrl/notificationsByUserId/$id";
 
-  static String get resetPassword => "$baseUrl/resetPassword";
+  // Reportes
+  static String get report => "$baseUrl/report";
 
-  static String get createReport => "$baseUrl/createReport";
-
+  // Almacenamiento
   static String generateUploadUrl(String fileName, String contentType) =>
       "$baseUrl/generateUploadUrl?fileName=$fileName&contentType=$contentType";
 }

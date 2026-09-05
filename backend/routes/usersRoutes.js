@@ -12,11 +12,11 @@ import {
 
 const userRouter = Router ();
 
-userRouter.get('/api/getUsers', getUsers);
-userRouter.get('/api/getUser/:id', getUser);
-userRouter.post('/api/createUser', createUser);
-userRouter.delete('/api/deleteUser/:id', deleteUser);
-userRouter.put('/api/updateUser/:id', updateUser);
+userRouter.get('/api/users', getUsers);
+userRouter.get('/api/user/:id', getUser);
+userRouter.post('/api/user', createUser);
+userRouter.delete('/api/user/:id', deleteUser);
+userRouter.put('/api/user/:id', updateUser);
 userRouter.post('/api/activateWorker/:id', activateWorker);
 userRouter.post('/api/login', login);
 userRouter.post('/api/resetPassword', resetPassword);

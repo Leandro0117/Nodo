@@ -11,7 +11,7 @@ class CreatePostService {
   Future<String?> createPost(
       Map<String, dynamic> postData) async {
     final response = await http.post(
-      Uri.parse(ApiConstants.createPost),
+      Uri.parse(ApiConstants.post()),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(postData),
     );
@@ -32,7 +32,7 @@ class CreatePostService {
   // Actualizar las URLs de las fotos
   Future<bool> updatePhotos(String postId, List<String> urls) async {
     final response = await http.put(
-      Uri.parse(ApiConstants.updatePost(postId)),
+      Uri.parse(ApiConstants.post(postId)),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"photos": urls}),
     );
@@ -48,7 +48,7 @@ class CreatePostService {
   // después (p. ej. la subida de imágenes), así no queda una publicación
   // huérfana sin fotos.
   Future<void> deletePost(String postId) async {
-    await http.delete(Uri.parse(ApiConstants.deletePost(postId)));
+    await http.delete(Uri.parse(ApiConstants.post(postId)));
   }
 
   // Trabaja con XFile (y no dart:io File) para que la subida funcione tanto

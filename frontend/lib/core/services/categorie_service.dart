@@ -7,7 +7,7 @@ import '../constants/api_constants.dart';
 class CategorieService {
   Future<List<Categorie>> obtenerCategorias() async {
     debugPrint('Obteniendo categorías desde el servicio...');
-    final response = await http.get(Uri.parse(ApiConstants.getSpecificCategories));
+    final response = await http.get(Uri.parse(ApiConstants.specificCategories));
     //debugPrint('Respuesta recibida: ${response}');
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
