@@ -6,22 +6,22 @@ import '../settings/widgets/settings_sub_header.dart';
 final List<TeamMember> team = [
   TeamMember(
     name: 'Kehiber Leandro Morelo Ricardo',
-    role: 'Estudiante de Ingeniería Informática',
+    role: 'Ingeniero Informático',
     image: 'assets/icons/iconNodoBlue.png',
   ),
   TeamMember(
     name: 'Luis Felipe Salgado Manco',
-    role: 'Estudiante de Ingeniería Informática',
+    role: 'Ingeniero Informático',
     image: 'assets/icons/iconNodoBlue.png',
   ),
   TeamMember(
     name: 'Mauricio Martínez Martínez',
-    role: 'Estudiante de Ingeniería Informática',
+    role: 'Ingeniero Informático',
     image: 'assets/icons/iconNodoBlue.png',
   ),
   TeamMember(
     name: 'Tomás Muñoz Galvez',
-    role: 'Estudiante de Ingeniería Informática',
+    role: 'Ingeniero Informático',
     image: 'assets/icons/iconNodoBlue.png',
   ),
 ];
