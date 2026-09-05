@@ -43,3 +43,15 @@ uploadFile('./uploads/ejemplo.jpg', 'imagenes/ejemplo.jpg')
   .then(url => console.log('Archivo subido, URL pública:', url))
   .catch(err => console.error('Error al subir:', err));
 */
+
+/// Elimina todos los archivos que cuelgan de un prefijo del bucket.
+/// Firebase Storage no tiene carpetas reales: "publicaciones/<id>/" es sólo el
+/// comienzo del nombre de cada objeto, así que se borran por prefijo.
+export async function deleteFolder(prefix) {
+  if (!firebaseEnabled) {
+    console.warn(`[firebase off] No se eliminaron los archivos de "${prefix}"`);
+    return;
+  }
+
+  await bucket.deleteFiles({ prefix });
+}

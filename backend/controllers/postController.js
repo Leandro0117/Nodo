@@ -1,5 +1,6 @@
 import { prisma } from "../database/prisma.js";
 import { notifyWorkersByCategories } from "../services/notificationService.js";
+import { deleteFolder } from "../services/storageService.js";
 
 const postInclude = { photos: true, categories: { include: { specificCategory: true } } };
 
@@ -244,7 +245,15 @@ export const updatePost = async (req, res) => {
 
 export const deletePost = async (req, res) => {
   try {
-    await prisma.post.delete({ where: { id: req.params.id } });
+    const postId = req.params.id;
+    await prisma.post.delete({ where: { id: postId } });
+
+    try {
+      await deleteFolder(`publicaciones/${postId}/`);
+    } catch (storageError) {
+      console.error(`Error deleting photos for post ${postId}:`, storageError);
+    }
+
     res.json({ message: "Record deleted successfully" });
   } catch (error) {
     if (error.code === "P2025") {
