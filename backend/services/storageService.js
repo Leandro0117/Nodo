@@ -1,22 +1,30 @@
 // services/storageService.js
-import bucket, { firebaseEnabled } from "../utils/firebase.js";
+import bucket, { storageEnabled } from "../utils/firebase.js";
 import path from "path";
 import { lookup } from "mime-types";
 
-export async function generateUploadUrl(fileName) {
-  if (!firebaseEnabled) {
-    throw new Error('Firebase deshabilitado: falta backend/serviceAccount.json');
+export async function generateUploadUrl(fileName, contentType) {
+  if (!storageEnabled) {
+    throw new Error(
+      'Storage deshabilitado: faltan las credenciales de Firebase o FIREBASE_STORAGE_BUCKET'
+    );
   }
   const file = bucket.file(`perfiles/${fileName.toLowerCase()}`);
 
+  // El cliente sube con este mismo Content-Type. Si el que se firma acá y el
+  // que viaja en el PUT no coinciden, GCS rechaza la subida entera con
+  // SignatureDoesNotMatch, así que manda el del cliente y sólo se deduce por
+  // extensión cuando no lo envía.
   const extension = path.extname(fileName).toLowerCase();
-  const contentType = lookup(extension) || "application/octet-stream";
+  const resolvedContentType =
+    contentType || lookup(extension) || "application/octet-stream";
+
   // Generar URL firmada válida por 15 minutos
   const [url] = await file.getSignedUrl({
     version: "v4",
     action: "write",
     expires: Date.now() + 15 * 60 * 1000, // 15 minutos
-    contentType,
+    contentType: resolvedContentType,
   });
 
   return url;
@@ -48,8 +56,8 @@ uploadFile('./uploads/ejemplo.jpg', 'imagenes/ejemplo.jpg')
 /// Firebase Storage no tiene carpetas reales: "publicaciones/<id>/" es sólo el
 /// comienzo del nombre de cada objeto, así que se borran por prefijo.
 export async function deleteFolder(prefix) {
-  if (!firebaseEnabled) {
-    console.warn(`[firebase off] No se eliminaron los archivos de "${prefix}"`);
+  if (!storageEnabled) {
+    console.warn(`[storage off] No se eliminaron los archivos de "${prefix}"`);
     return;
   }
 

@@ -29,7 +29,14 @@ export async function saveNotification(userId, type, title, message, data) {
   });
 
   if (user?.fcmToken) {
-    await sendNotificationToUser(user.fcmToken, title, message, data, userId);
+    const { invalidToken } = await sendNotificationToUser(user.fcmToken, title, message, data);
+
+    // El token murió (app desinstalada o rotado). Se borra acá porque este es
+    // el punto que conoce el userId; si no, queda envenenando cada envío futuro.
+    if (invalidToken) {
+      await prisma.appUser.update({ where: { id: userId }, data: { fcmToken: null } });
+      console.log(`FCM token no longer valid for user ${userId}; cleared.`);
+    }
   }
 
   return notification;

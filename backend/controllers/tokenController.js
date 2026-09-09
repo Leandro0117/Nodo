@@ -23,7 +23,19 @@ export const saveToken = async (req, res) => {
       data: { fcmToken: token },
     });
 
-    await sendNotificationToUser(token, "Token registered", "The FCM token was saved successfully", { type: "system" });
+    const { invalidToken } = await sendNotificationToUser(
+      token,
+      "Token registered",
+      "The FCM token was saved successfully",
+      { type: "system" }
+    );
+
+    // FCM rechazó el token recién guardado, así que no sirve: se revierte para
+    // no dejarlo en la base y se avisa al cliente, que de otro modo lo cachearía.
+    if (invalidToken) {
+      await prisma.appUser.update({ where: { id: userId }, data: { fcmToken: null } });
+      return res.status(400).json({ message: "The FCM token was rejected by Firebase." });
+    }
 
     return res.status(200).json({ message: "Token updated successfully." });
   } catch (error) {

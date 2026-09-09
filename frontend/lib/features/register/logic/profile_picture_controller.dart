@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:nodo/core/constants/api_constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:nodo/shared/providers/register_provider.dart';
+import 'package:mime/mime.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -33,11 +34,12 @@ class ProfilePictureController extends ChangeNotifier {
     debugPrint("Subiendo imagen mediante backend: $fileName");
 
     try {
-      // Obtener URL firmada desde tu backend
-        final extension = path.extension(imagen.path).toLowerCase();
-
-      final mimeType = extension == '.png' ? 'image/png' :
-                 extension == '.heic' ? 'image/heic' : 'image/jpeg';
+      // El backend firma la URL con este mismo tipo, así que tiene que salir de
+      // la tabla real de MIME y no de un if/else: cualquier extensión que no
+      // fuera jpg/png/heic se firmaba distinto de lo que se subía y GCS
+      // rechazaba el PUT.
+      final mimeType =
+          lookupMimeType(imagen.path) ?? 'application/octet-stream';
       final response = await http.get(
         Uri.parse(ApiConstants.generateUploadUrl(fileName, mimeType)),
       );
@@ -46,12 +48,7 @@ class ProfilePictureController extends ChangeNotifier {
         final data = json.decode(response.body);
         final uploadUrl = data['url'];
         debugPrint("URL de subida obtenida: $uploadUrl");
-        // Subir imagen directamente a Firebase usando esa URL
-        // 2️⃣ Detectar tipo MIME automáticamente (jpg, png, etc.)
-        //final mimeType =
-        //    lookupMimeType(imagen.path) ?? 'application/octet-stream';
-
-        // 3️⃣ Subir imagen directamente a Firebase Storage mediante la URL firmada
+        // Subir la imagen directamente a Firebase con la URL firmada
         final bytes = await imagen.readAsBytes();
         final putResponse = await http.put(
           Uri.parse(uploadUrl),
