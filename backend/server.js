@@ -15,6 +15,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Una línea por petición: si una llamada de la app no aparece aquí, nunca
+// llegó al backend (URL equivocada, servidor caído, CORS o red).
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    console.log(`[http] ${req.method} ${req.originalUrl} → ${res.statusCode} (${Date.now() - start} ms)`);
+  });
+  next();
+});
+
 const PORT = process.env.PORT || 3001;
 
 // Configuración de CORS

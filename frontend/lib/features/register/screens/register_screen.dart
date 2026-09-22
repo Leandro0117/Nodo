@@ -5,6 +5,7 @@ import 'package:nodo/features/register/widgets/validation_widget.dart';
 import 'package:nodo/features/register/widgets/profile_picture_widget.dart';
 import 'package:nodo/features/login/screens/login_screen.dart';
 import 'package:nodo/core/theme/app_theme.dart';
+import 'package:nodo/core/utils/debug_log.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String? initialUserType;
@@ -18,7 +19,13 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   int currentStep = 0;
 
+  static const _pasos = ['formulario', 'código SMS', 'foto de perfil', 'fin'];
+
+  String _nombrePaso(int i) => i < _pasos.length ? _pasos[i] : 'fin';
+
   void nextStep() {
+    logPaso('Pantalla', 'Paso ${currentStep + 1} (${_nombrePaso(currentStep)}) → '
+        'paso ${currentStep + 2} (${_nombrePaso(currentStep + 1)})');
     setState(() {
       currentStep++;
     });

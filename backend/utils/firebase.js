@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 import serviceAccount from '../serviceAccount.js';
+import { logRegistro, mask } from './debugLog.js';
 
 const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
 
@@ -12,6 +13,14 @@ if (firebaseEnabled && !storageBucket) {
   console.warn('⚠️  Falta FIREBASE_STORAGE_BUCKET. Storage deshabilitado.');
 }
 
+// Para verificar los tokens del registro por SMS basta con el ID del proyecto,
+// sin credencial: sale de la variable, de la credencial o del nombre del bucket.
+const projectId =
+  process.env.FIREBASE_PROJECT_ID ||
+  serviceAccount?.project_id ||
+  storageBucket?.split('.')[0] ||
+  'nodo-b1ff4';
+
 let bucket = null;
 
 if (firebaseEnabled) {
@@ -23,9 +32,49 @@ if (firebaseEnabled) {
   if (storageEnabled) {
     bucket = admin.storage().bucket();
   }
+} else {
+  // Sin credencial no hay Storage ni push, pero sí verificación de tokens:
+  // las llaves públicas de Google se consultan por HTTPS.
+  admin.initializeApp({ projectId });
 }
 
+console.log(
+  `[firebase] Inicializado · proyecto ${projectId} · ` +
+  (firebaseEnabled ? 'con credencial' : 'solo verificación de tokens (sin credencial)')
+);
+
 export default bucket;
+
+/**
+ * Verifica el ID token que la app obtiene de Firebase después de confirmar
+ * el código SMS. Devuelve el teléfono verificado en formato E.164
+ * (+573001234567). Lanza un error si el token es inválido, venció, es de otro
+ * proyecto o no proviene de un inicio de sesión por teléfono.
+ */
+export async function verifyPhoneIdToken(idToken) {
+  logRegistro(`Verificando token con Firebase (${idToken.length} caracteres)…`);
+
+  let decoded;
+  try {
+    decoded = await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    // Causas típicas: token de otro proyecto ("aud"), vencido o cortado.
+    logRegistro(`✗ Firebase rechazó el token: [${error.code}] ${error.message}`);
+    throw error;
+  }
+
+  logRegistro(
+    `✓ Token válido · proyecto ${decoded.aud} · proveedor ${decoded.firebase?.sign_in_provider} · ` +
+    `celular ${mask(decoded.phone_number)}`
+  );
+
+  if (decoded.firebase?.sign_in_provider !== 'phone' || !decoded.phone_number) {
+    logRegistro('✗ El token no viene de un inicio de sesión por teléfono');
+    throw new Error('The token does not come from a phone sign-in.');
+  }
+
+  return decoded.phone_number;
+}
 
 // Con estos códigos FCM avisa que el token ya no sirve: la app se desinstaló o
 // el token rotó. Se distinguen del resto de errores porque el token hay que

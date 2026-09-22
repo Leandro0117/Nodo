@@ -23,7 +23,6 @@ import 'package:nodo/features/posts/logic/posts_controller.dart';
 import 'package:nodo/features/posts/logic/posts_service.dart';
 import 'package:nodo/features/register/logic/profile_picture_controller.dart';
 import 'package:nodo/features/register/logic/register_controller.dart';
-import 'package:nodo/features/register/logic/validation_controller.dart';
 import 'package:nodo/features/trabajos/screens/jobs_dashboard_screen.dart';
 import 'package:nodo/features/trabajos/screens/thanks_screen.dart';
 import 'package:nodo/core/services/notification_service.dart';
@@ -80,7 +79,6 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => RegisterController(),
         ),
-        ChangeNotifierProvider(create: (_) => ValidationController()),
         ChangeNotifierProvider(create: (_) => ProfilePictureController()),
         ChangeNotifierProvider(create: (_) => CategorieProvider()),
         ChangeNotifierProvider(create: (_) => GeneralCategoryProvider()),

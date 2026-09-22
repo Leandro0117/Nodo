@@ -1,5 +1,26 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../database/prisma.js";
+import { verifyPhoneIdToken } from "../utils/firebase.js";
+import { logRegistro, mask } from "../utils/debugLog.js";
+
+// Solo para desarrollo local (por ejemplo, probar desde Bruno sin SMS).
+// Las cuentas creadas así quedan con verified = false.
+const SKIP_PHONE_VERIFICATION = process.env.DEV_SKIP_PHONE_VERIFICATION === "true";
+if (SKIP_PHONE_VERIFICATION) {
+  console.warn(
+    "⚠️  DEV_SKIP_PHONE_VERIFICATION=true: se pueden crear cuentas sin verificar " +
+    "el celular. Nunca actives esta variable en producción."
+  );
+}
+
+// Normaliza un celular colombiano a E.164 (+573001234567). Acepta
+// "3001234567", "300 123 4567", "573001234567" o "+573001234567".
+// Devuelve null si no es un celular válido (10 dígitos que empiezan por 3).
+function toColombianE164(phone) {
+  const digits = String(phone ?? "").replace(/\D/g, "");
+  const local = digits.length === 12 && digits.startsWith("57") ? digits.slice(2) : digits;
+  return /^3\d{9}$/.test(local) ? `+57${local}` : null;
+}
 
 const userInclude = {
   worker: { include: { workerCategories: { include: { generalCategory: true } } } },
@@ -56,6 +77,10 @@ export const getUser = async (req, res) => {
 export const createUser = async (req, res) => {
   try {
     const data = req.body;
+    logRegistro(
+      `createUser · campos: ${Object.keys(data).filter((k) => k !== "password" && k !== "phoneIdToken").join(", ")} · ` +
+      `phoneIdToken: ${data.phoneIdToken ? `sí (${data.phoneIdToken.length} caracteres)` : "NO"}`
+    );
 
     const requiredFields = [
       "firstName",
@@ -68,6 +93,7 @@ export const createUser = async (req, res) => {
     ];
     const missing = requiredFields.filter((field) => !data[field]);
     if (missing.length > 0) {
+      logRegistro(`✗ Faltan campos: ${missing.join(", ")}`);
       return res.status(400).json({
         message: `Missing required fields: ${missing.join(", ")}`,
       });
@@ -76,6 +102,37 @@ export const createUser = async (req, res) => {
     const birthDate = parseBirthDate(data.birthDate);
     if (isNaN(birthDate.getTime())) {
       return res.status(400).json({ message: "Invalid birthDate." });
+    }
+
+    // El celular debe venir confirmado por Firebase con el código de 6 dígitos.
+    const phoneE164 = toColombianE164(data.phone);
+    logRegistro(`Celular recibido "${mask(data.phone)}" → normalizado ${mask(phoneE164)}`);
+    if (!phoneE164) {
+      logRegistro("✗ No es un celular colombiano válido (10 dígitos que empiezan por 3)");
+      return res.status(400).json({ message: "Invalid phone number." });
+    }
+
+    let phoneVerified = false;
+    if (data.phoneIdToken) {
+      try {
+        const verifiedPhone = await verifyPhoneIdToken(data.phoneIdToken);
+        if (verifiedPhone !== phoneE164) {
+          logRegistro(`✗ No coinciden: Firebase verificó ${mask(verifiedPhone)} y el formulario trae ${mask(phoneE164)}`);
+          return res.status(401).json({
+            message: "The verified phone does not match the submitted phone.",
+          });
+        }
+        phoneVerified = true;
+        logRegistro("✓ El celular del token coincide con el del formulario");
+      } catch (error) {
+        logRegistro(`✗ Token rechazado → 401 (${error.code ?? error.message})`);
+        return res.status(401).json({ message: "Phone verification failed or expired." });
+      }
+    } else if (!SKIP_PHONE_VERIFICATION) {
+      logRegistro("✗ Llegó sin phoneIdToken y DEV_SKIP_PHONE_VERIFICATION no está activa → 400");
+      return res.status(400).json({ message: "Missing phoneIdToken." });
+    } else {
+      console.warn(`⚠️  Cuenta ${data.email} creada sin verificar el celular (modo desarrollo).`);
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
@@ -87,14 +144,18 @@ export const createUser = async (req, res) => {
         secondLastName: data.secondLastName ?? null,
         dni: data.dni,
         email: data.email,
-        phone: data.phone,
+        // Se guarda en formato local (10 dígitos) para que el login por teléfono siga igual.
+        phone: phoneE164.slice(3),
         birthDate,
         passwordHash,
         profilePhoto: data.profilePhoto ?? null,
         location: data.location ?? null,
-        verified: false,
+        // Por ahora "verified" significa "celular confirmado por SMS".
+        verified: phoneVerified,
       },
     });
+
+    logRegistro(`✓ Usuario creado ${user.id} · verified=${phoneVerified}`);
 
     let worker = null;
     if (data.isWorker) {
@@ -113,11 +174,53 @@ export const createUser = async (req, res) => {
   } catch (error) {
     console.error("Error creating user:", error);
     if (error.code === "P2002") {
+      logRegistro(`✗ Duplicado en: ${error.meta?.target ?? "campo desconocido"} → 409`);
       return res.status(409).json({
         message: "A user with that DNI, email, or phone already exists.",
       });
     }
     res.status(500).json({ message: "Error registering user", error: error.message });
+  }
+};
+
+// Se llama antes de enviar el SMS, para no gastar un mensaje en un registro
+// que después fallaría por cédula, correo o teléfono repetidos.
+export const checkAvailability = async (req, res) => {
+  const { email, phone, dni } = req.body ?? {};
+  const phoneE164 = toColombianE164(phone);
+  logRegistro(`checkAvailability · correo ${email} · cédula ${dni} · celular "${mask(phone)}" → ${mask(phoneE164)}`);
+
+  if (!email || !dni || !phoneE164) {
+    logRegistro("✗ Datos incompletos o celular inválido → 400");
+    return res.status(400).json({
+      message: "email, dni and a valid Colombian mobile phone are required.",
+    });
+  }
+
+  try {
+    const existing = await prisma.appUser.findFirst({
+      where: { OR: [{ email }, { dni }, { phone: phoneE164.slice(3) }] },
+      select: { id: true, email: true, dni: true, phone: true },
+    });
+
+    if (existing) {
+      // Solo en el log: la respuesta no dice qué dato está ocupado, a propósito.
+      const taken = [
+        existing.email === email && "correo",
+        existing.dni === dni && "cédula",
+        existing.phone === phoneE164.slice(3) && "celular",
+      ].filter(Boolean);
+      logRegistro(`✗ Ya registrado (${taken.join(", ")}) en el usuario ${existing.id} → 409`);
+      return res.status(409).json({
+        message: "A user with that DNI, email, or phone already exists.",
+      });
+    }
+
+    logRegistro("✓ Datos libres → 200");
+    res.status(200).json({ available: true });
+  } catch (error) {
+    console.error("Error checking availability:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

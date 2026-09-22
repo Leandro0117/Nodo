@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nodo/core/theme/app_theme.dart';
+import 'package:nodo/core/utils/debug_log.dart';
 import 'package:nodo/features/register/logic/register_controller.dart';
 import 'package:nodo/shared/providers/general_category_provider.dart';
 import 'package:nodo/shared/providers/location_provider.dart';
@@ -233,15 +234,18 @@ class _FormWidgetState extends State<FormWidget> {
 
                 TextFormField(
                   controller: phoneController,
-                  decoration:
-                      const InputDecoration(labelText: "Número telefónico"),
+                  decoration: const InputDecoration(
+                    labelText: "Celular",
+                    prefixText: "+57 ",
+                  ),
                   keyboardType: TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Este campo es obligatorio';
                     }
-                    if (!RegExp(r"^\d{1,10}$").hasMatch(value)) {
-                      return 'Debe contener solo números (máx. 10 dígitos)';
+                    // Firebase envía el código por SMS: tiene que ser un celular.
+                    if (!RegExp(r"^3\d{9}$").hasMatch(value.trim())) {
+                      return 'Ingresa un celular de 10 dígitos que empiece por 3';
                     }
                     return null;
                   },
@@ -412,12 +416,34 @@ class _FormWidgetState extends State<FormWidget> {
                   onPressed: registerController.isLoading
                       ? null
                       : () async {
-                          // Validar formulario general
-                          if (!_formKey.currentState!.validate()) return;
+                          logPaso('Formulario', 'Botón "Completar registro" presionado');
+
+                          // Validar el formulario y registrar qué campos fallan
+                          final invalidos =
+                              _formKey.currentState!.validateGranularly();
+                          if (invalidos.isNotEmpty) {
+                            for (final campo in invalidos) {
+                              logPaso('Formulario',
+                                  '✗ Campo inválido: ${campo.errorText}');
+                            }
+                            logPaso('Formulario',
+                                'Se detiene: ${invalidos.length} campo(s) con error');
+                            // El error puede quedar fuera de la pantalla:
+                            // llevar al usuario hasta el primero.
+                            Scrollable.ensureVisible(
+                              invalidos.first.context,
+                              duration: const Duration(milliseconds: 300),
+                              alignment: 0.2,
+                            );
+                            return;
+                          }
+                          logPaso('Formulario',
+                              '✓ Campos válidos · tipo de usuario: $selectedUserType');
 
                           // Validar ubicación si es trabajador (no es un TextFormField, no la valida el Form)
                           if (selectedUserType == "trabajador" &&
                               locationController.text.trim().isEmpty) {
+                            logPaso('Formulario', '✗ Trabajador sin ubicación seleccionada');
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content:
@@ -431,6 +457,7 @@ class _FormWidgetState extends State<FormWidget> {
                           // Validar que seleccione al menos una categoría si es trabajador
                           if (selectedUserType == "trabajador" &&
                               selectedCategories.isEmpty) {
+                            logPaso('Formulario', '✗ Trabajador sin rubros seleccionados');
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
@@ -440,7 +467,7 @@ class _FormWidgetState extends State<FormWidget> {
                             );
                             return; // 🚫 Detiene la ejecución
                           }
-                          await registerController.registerUser(
+                          await registerController.prepareRegistration(
                             context: context,
                             formKey: _formKey,
                             nameController: nameController,
