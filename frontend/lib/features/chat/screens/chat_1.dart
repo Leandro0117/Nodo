@@ -12,11 +12,16 @@ class ChatScreen extends StatefulWidget {
   final String currentUserId;
   final String otherPersonName;
 
+  /// Cuando es `true` el historial se muestra pero no se pueden enviar mensajes
+  /// (trabajo finalizado). No se abre WebSocket.
+  final bool readOnly;
+
   const ChatScreen({
     super.key,
     required this.applicationId,
     required this.currentUserId,
     required this.otherPersonName,
+    this.readOnly = false,
   });
 
   @override
@@ -62,7 +67,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() => _conversationId = id);
       await _loadHistory();
-      _connectWebSocket(id);
+      // En modo solo-lectura no se necesita WebSocket
+      if (!widget.readOnly) _connectWebSocket(id);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -233,7 +239,10 @@ class _ChatScreenState extends State<ChatScreen> {
               : Column(
                   children: [
                     Expanded(child: _buildMessageList()),
-                    _buildInputBar(),
+                    if (widget.readOnly)
+                      _buildReadOnlyBanner()
+                    else
+                      _buildInputBar(),
                   ],
                 ),
     );
@@ -269,7 +278,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: AppTypography.subtitle.copyWith(color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (!_wsConnected && !_loadingHistory)
+                if (widget.readOnly)
+                  Text(
+                    'Solo lectura · Trabajo finalizado',
+                    style: AppTypography.caption.copyWith(color: Colors.white60),
+                  )
+                else if (!_wsConnected && !_loadingHistory)
                   Text(
                     'Reconectando…',
                     style: AppTypography.caption.copyWith(color: Colors.white60),
@@ -334,12 +348,14 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Aún no hay mensajes',
+              'Sin mensajes',
               style: AppTypography.subtitle.copyWith(color: AppColors.blue),
             ),
             const SizedBox(height: 4),
             Text(
-              '¡Inicia la conversación!',
+              widget.readOnly
+                  ? 'No hubo mensajes en este trabajo.'
+                  : '¡Inicia la conversación!',
               style: AppTypography.body.copyWith(color: AppColors.slateGrey),
             ),
           ],
@@ -452,6 +468,38 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Banner que reemplaza la barra de escritura cuando el trabajo ya terminó.
+  Widget _buildReadOnlyBanner() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.success.withOpacity(0.08),
+          border: Border(
+            top: BorderSide(color: AppColors.success.withOpacity(0.25)),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 18,
+              color: AppColors.success,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Este trabajo ha finalizado · El chat es de solo lectura',
+              style: AppTypography.caption.copyWith(color: AppColors.success),
             ),
           ],
         ),

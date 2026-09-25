@@ -66,6 +66,11 @@ class ApiConstants {
 
   static String get createReport => "$baseUrl/createReport";
 
+  static String get createRating => "$baseUrl/createRating";
+  static String getUserRatings(String userId) => "$baseUrl/getUserRatings/$userId";
+  static String getRatingByServiceAndUser(String serviceId, String userId) =>
+      "$baseUrl/getRatingByServiceAndUser/$serviceId/$userId";
+
   static String generateUploadUrl(String fileName, String contentType) =>
       "$baseUrl/generateUploadUrl?fileName=$fileName&contentType=$contentType";
 }

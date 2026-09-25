@@ -37,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(children: [
+          // — Header —
           SizedBox(
             height: 207.h,
             child: Container(
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.blue,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   bottomRight: Radius.circular(100),
                 ),
               ),
@@ -71,154 +72,235 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          SizedBox(
-            height: 483.h,
-            child: Container(
-              margin: EdgeInsets.symmetric(
-                horizontal: 30.6.w,
-              ).copyWith(
-                top: 103.5.h,
-              ),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 34.5.h,
-                    child: TextField(
-                      controller: _identificadorController,
-                      decoration: InputDecoration(
-                        labelText: "Correo electronico o teléfono",
-                      ),
+
+          // — Formulario —
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 30.6.w).copyWith(
+              top: 40.h,
+              bottom: 30.h,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Campo correo / teléfono
+                TextField(
+                  controller: _identificadorController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: "Correo electrónico o teléfono",
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: AppColors.slateGrey,
+                      size: 20.sp,
                     ),
                   ),
-                  Container(
-                    margin: EdgeInsets.only(
-                      top: 10.35.h,
+                ),
+
+                SizedBox(height: 14.h),
+
+                // Campo contraseña
+                TextField(
+                  controller: _contrasenaController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: "Contraseña",
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: AppColors.slateGrey,
+                      size: 20.sp,
                     ),
-                    height: 34.5.h,
-                    child: TextField(
-                      controller: _contrasenaController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: "Contraseña",
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: AppColors.grey,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.grey,
+                        size: 20.sp,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+
+                // Olvidaste contraseña
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 4.h),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
                         ),
-                      ),
+                      );
+                    },
+                    child: Text(
+                      "¿Olvidaste tu contraseña?",
+                      style: AppTypography.body.copyWith(color: AppColors.orange),
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
+                ),
+
+                SizedBox(height: 8.h),
+
+                // Botón iniciar sesión
+                Selector<UserProvider, bool>(
+                  selector: (_, provider) => provider.isLoading,
+                  builder: (_, loading, __) => CustomElevatedButton(
+                    text: "Iniciar sesión",
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            await _loginController.login(
+                              _identificadorController.text.trim(),
+                              _contrasenaController.text.trim(),
+                            );
+                          },
+                    loading: loading,
+                  ),
+                ),
+
+                SizedBox(height: 4.h),
+
+                // ¿No tienes cuenta?
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "¿No tienes una cuenta? ",
+                      style: AppTypography.body.copyWith(color: AppColors.blue),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordScreen(),
+                            builder: (context) => const RegisterScreen(),
                           ),
                         );
                       },
                       child: Text(
-                        "¿Olvidaste tu contraseña?",
-                        style: AppTypography.body
-                            .copyWith(color: AppColors.orange),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: EdgeInsets.only(
-                      top: 17.25.h,
-                    ),
-                    child: Selector<UserProvider, bool>(
-                      selector: (_, provider) => provider.isLoading,
-                      builder: (_, loading, __) => CustomElevatedButton(
-                        text: "Iniciar sesión",
-                        onPressed: loading
-                            ? null
-                            : () async {
-                                await _loginController.login(
-                                  _identificadorController.text.trim(),
-                                  _contrasenaController.text.trim(),
-                                );
-                              },
-                        loading: loading,
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("¿No tienes una cuenta? ",
-                          style: AppTypography.body
-                              .copyWith(color: AppColors.blue)),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const RegisterScreen()),
-                          );
-                        },
-                        child: Text("Regístrate",
-                            style: AppTypography.body.copyWith(
-                                // fontFamily: 'GothamMedium',
-                                color: AppColors.orange)),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    margin: EdgeInsets.only(
-                        top: 62.1.h,
-                        bottom: 10.35.h),
-                    child: Text("O continua con: ",
+                        "Regístrate",
                         style: AppTypography.body.copyWith(
-                            fontFamily: 'GothamMedium', color: AppColors.blue)),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      InkWell(
-                        onTap: () {},
-                        child: Icon(
-                          Icons.facebook,
-                          size: 20.7.h,
-                          color: AppColors.blue,
+                          color: AppColors.orange,
+                          fontFamily: 'GothamMedium',
                         ),
                       ),
-                      SizedBox(width: 20.7.h),
-                      InkWell(
-                        onTap: () {},
-                        child: FaIcon(
-                          FontAwesomeIcons.google,
-                          size: 20.7.h,
-                          color: AppColors.blue,
-                        ),
-                      ),
-                      SizedBox(width: 20.7.h),
-                      InkWell(
-                        onTap: () {},
-                        child: FaIcon(
-                          FontAwesomeIcons.linkedin,
-                          size: 20.7.h,
-                          color: AppColors.blue,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 28.h),
+
+                // // Divisor "O continua con"
+                // Row(
+                //   children: [
+                //     Expanded(
+                //       child: Divider(
+                //         color: AppColors.slateGrey.withOpacity(0.5),
+                //         thickness: 1,
+                //       ),
+                //     ),
+                //     Padding(
+                //       padding: EdgeInsets.symmetric(horizontal: 12.w),
+                //       child: Text(
+                //         "O continúa con",
+                //         style: AppTypography.caption.copyWith(
+                //           color: AppColors.slateGrey,
+                //         ),
+                //       ),
+                //     ),
+                //     Expanded(
+                //       child: Divider(
+                //         color: AppColors.slateGrey.withOpacity(0.5),
+                //         thickness: 1,
+                //       ),
+                //     ),
+                //   ],
+                // ),
+
+                // SizedBox(height: 20.h),
+
+                // // Íconos sociales
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.center,
+                //   children: [
+                //     _SocialIconButton(
+                //       icon: Icons.facebook,
+                //       isFontAwesome: false,
+                //       onTap: () {},
+                //     ),
+                //     SizedBox(width: 20.w),
+                //     _SocialIconButton(
+                //       faIcon: FontAwesomeIcons.google,
+                //       isFontAwesome: true,
+                //       onTap: () {},
+                //     ),
+                //     SizedBox(width: 20.w),
+                //     _SocialIconButton(
+                //       faIcon: FontAwesomeIcons.linkedin,
+                //       isFontAwesome: true,
+                //       onTap: () {},
+                //     ),
+                //   ],
+                // ),
+
+                // SizedBox(height: 24.h),
+              ],
             ),
-          )
+          ),
         ]),
+      ),
+    );
+  }
+}
+
+/// Ícono social con borde circular y efecto ripple
+class _SocialIconButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isFontAwesome;
+  final IconData? icon;
+  final IconData? faIcon;
+
+  const _SocialIconButton({
+    required this.onTap,
+    required this.isFontAwesome,
+    this.icon,
+    this.faIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        width: 44.w,
+        height: 44.w,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.slateGrey.withValues(alpha: 0.4),
+            width: 1.2,
+          ),
+        ),
+        child: Center(
+          child: isFontAwesome
+              ? FaIcon(faIcon as FaIconData?, size: 18.sp, color: AppColors.blue)
+              : Icon(icon, size: 22.sp, color: AppColors.blue),
+        ),
       ),
     );
   }

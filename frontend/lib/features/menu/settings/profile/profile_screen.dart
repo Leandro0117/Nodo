@@ -1,13 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nodo/features/posts/screens/posts_screen.dart';
+import 'package:nodo/features/rating/logic/rating_service.dart';
 import 'package:nodo/shared/providers/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:nodo/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  double? _workerAvg;
+  int _workerCount = 0;
+  double? _clientAvg;
+  int _clientCount = 0;
+  bool _loadingRatings = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRatings());
+  }
+
+  Future<void> _loadRatings() async {
+    final userId =
+        Provider.of<UserProvider>(context, listen: false).user?.id ?? '';
+    if (userId.isEmpty) {
+      setState(() => _loadingRatings = false);
+      return;
+    }
+    final data = await RatingService.getUserRatings(userId);
+    if (!mounted) return;
+    setState(() {
+      _loadingRatings = false;
+      if (data != null) {
+        final w = data['asWorker'] as Map<String, dynamic>?;
+        final c = data['asClient'] as Map<String, dynamic>?;
+        _workerAvg = (w?['avg'] as num?)?.toDouble();
+        _workerCount = (w?['count'] as num?)?.toInt() ?? 0;
+        _clientAvg = (c?['avg'] as num?)?.toDouble();
+        _clientCount = (c?['count'] as num?)?.toInt() ?? 0;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +82,9 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nombre y calificación
                   _buildNameCard(user, esTrabajador),
                   SizedBox(height: 14.h),
 
-                  // Información de contacto
                   _buildCard(
                     title: "Información de contacto",
                     icon: Icons.contact_mail_outlined,
@@ -70,7 +108,6 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 14.h),
 
-                  // Descripción
                   _buildCard(
                     title: "Descripción",
                     icon: Icons.notes_outlined,
@@ -85,7 +122,6 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Rubros (solo para trabajadores)
                   if (esTrabajador && user.categorias.isNotEmpty) ...[
                     SizedBox(height: 14.h),
                     _buildCard(
@@ -114,7 +150,6 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ],
 
-                  // Estadísticas
                   SizedBox(height: 14.h),
                   _buildCard(
                     title: "Estadísticas",
@@ -157,7 +192,7 @@ class ProfileScreen extends StatelessWidget {
                       "Las insignias son un modo de reconocer los logros de nuestros usuarios. Otros usuarios podrán verlas. Será una función que agregaremos próximamente ;)",
                       style: AppTypography.caption
                           .copyWith(color: AppColors.blue.withValues(alpha: 0.7)),
-                    textAlign: TextAlign.justify,
+                      textAlign: TextAlign.justify,
                     ),
                   ),
                 ],
@@ -169,6 +204,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  // ── Header ────────────────────────────────────────────────────────────────
+
   Widget _buildHeader(BuildContext context, dynamic user) {
     return Column(
       children: [
@@ -179,20 +216,10 @@ class ProfileScreen extends StatelessWidget {
             children: [
               Column(
                 children: [
-                  Container(
-                    height: 110.h,
-                    width: double.infinity,
-                    color: AppColors.blue,
-                  ),
-                  Container(
-                    height: 10.h,
-                    width: double.infinity,
-                    color: AppColors.orange,
-                  ),
+                  Container(height: 110.h, width: double.infinity, color: AppColors.blue),
+                  Container(height: 10.h, width: double.infinity, color: AppColors.orange),
                 ],
               ),
-
-              // Botón de retroceso
               Positioned(
                 top: 12.h,
                 left: 5.w,
@@ -200,38 +227,25 @@ class ProfileScreen extends StatelessWidget {
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: AppColors.blue,
-                      shape: BoxShape.circle,
-                    ),
+                        color: AppColors.blue, shape: BoxShape.circle),
                     padding: EdgeInsets.all(8.r),
                     child: Icon(Icons.arrow_back_sharp,
                         color: AppColors.white, size: 20.r),
                   ),
                 ),
               ),
-
-              // Botón de editar perfil
               Positioned(
                 top: 12.h,
                 right: 5.w,
                 child: IconButton(
                   style: TextButton.styleFrom(
-                    // backgroundColor: AppColors.white.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                        borderRadius: BorderRadius.circular(20)),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     elevation: 1,
                   ),
-                  icon: Icon(Icons.edit_outlined,
-                      color: AppColors.white, size: 18.r),
-                  // label: Text('Editar',
-                  //     style:
-                  //         AppTypography.label.copyWith(color: AppColors.white)),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/editProfile');
-                  },
+                  icon: Icon(Icons.edit_outlined, color: AppColors.white, size: 18.r),
+                  onPressed: () => Navigator.pushNamed(context, '/editProfile'),
                 ),
               ),
               Positioned(
@@ -240,9 +254,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.all(4.r),
                   decoration: const BoxDecoration(
-                    color: AppColors.white,
-                    shape: BoxShape.circle,
-                  ),
+                      color: AppColors.white, shape: BoxShape.circle),
                   child: Consumer<UserProvider>(
                     builder: (context, userProvider, child) {
                       final fotoPerfil = userProvider.user?.fotoPerfil;
@@ -256,10 +268,8 @@ class ProfileScreen extends StatelessWidget {
                         child: (fotoPerfil == null || fotoPerfil.isEmpty)
                             ? Padding(
                                 padding: EdgeInsets.all(20.r),
-                                child: Image.asset(
-                                  'assets/icons/iconNodoBlue.png',
-                                  fit: BoxFit.contain,
-                                ),
+                                child: Image.asset('assets/icons/iconNodoBlue.png',
+                                    fit: BoxFit.contain),
                               )
                             : null,
                       );
@@ -275,9 +285,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  // ── Name card con calificaciones por rol ──────────────────────────────────
+
   Widget _buildNameCard(dynamic user, bool esTrabajador) {
     final nombreCompleto =
         '${user.nombres} ${user.primerApellido} ${user.segundoApellido}'.trim();
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16.r),
@@ -309,25 +322,79 @@ class ProfileScreen extends StatelessWidget {
               style: AppTypography.caption.copyWith(color: AppColors.orange),
             ),
           ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Icon(Icons.star_rounded, color: AppColors.orange, size: 18.r),
-              SizedBox(width: 4.w),
-              Text(
-                user.calificacionPromedio != null
-                    ? user.calificacionPromedio.toStringAsFixed(1)
-                    : 'Sin calificación',
-                style: AppTypography.label.copyWith(color: AppColors.blue),
-              ),
-            ],
-          ),
+          SizedBox(height: 14.h),
+          Divider(color: AppColors.slateGrey.withValues(alpha: 0.2), height: 1),
+          SizedBox(height: 12.h),
+          _loadingRatings
+              ? Center(
+                  child: SizedBox(
+                    width: 18.r,
+                    height: 18.r,
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.blue),
+                  ),
+                )
+              : Column(
+                  children: [
+                    // Solo mostrar "como trabajador" si es trabajador
+                    if (esTrabajador)
+                      _buildRatingRow(
+                        icon: Icons.construction_outlined,
+                        label: 'Como trabajador',
+                        avg: _workerAvg,
+                        count: _workerCount,
+                      ),
+                    if (esTrabajador) SizedBox(height: 8.h),
+                    _buildRatingRow(
+                      icon: Icons.person_outline,
+                      label: 'Como cliente',
+                      avg: _clientAvg,
+                      count: _clientCount,
+                    ),
+                  ],
+                ),
         ],
       ),
     );
   }
 
-  // Función para construir una tarjeta con un título, un ícono y contenido
+  Widget _buildRatingRow({
+    required IconData icon,
+    required String label,
+    required double? avg,
+    required int count,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16.sp, color: AppColors.blue.withValues(alpha: 0.6)),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Text(label,
+              style: AppTypography.caption.copyWith(color: AppColors.slateGrey)),
+        ),
+        if (avg != null) ...[
+          Icon(Icons.star_rounded, color: AppColors.orange, size: 14.sp),
+          SizedBox(width: 3.w),
+          Text(
+            avg.toStringAsFixed(1),
+            style: AppTypography.label.copyWith(color: AppColors.blue),
+          ),
+          SizedBox(width: 4.w),
+          Text(
+            '($count)',
+            style: AppTypography.caption.copyWith(color: AppColors.slateGrey),
+          ),
+        ] else
+          Text(
+            'Sin calificaciones',
+            style: AppTypography.caption.copyWith(color: AppColors.slateGrey),
+          ),
+      ],
+    );
+  }
+
+  // ── Helpers reutilizables ─────────────────────────────────────────────────
+
   Widget _buildCard({
     required String title,
     required IconData icon,
@@ -382,8 +449,7 @@ class ProfileScreen extends StatelessWidget {
                     style: AppTypography.caption
                         .copyWith(color: AppColors.slateGrey)),
                 Text(value,
-                    style:
-                        AppTypography.body.copyWith(color: AppColors.blue)),
+                    style: AppTypography.body.copyWith(color: AppColors.blue)),
               ],
             ),
           ),
@@ -405,21 +471,20 @@ class ProfileScreen extends StatelessWidget {
             SizedBox(width: 10.w),
             Expanded(
               child: Text(label,
-                  style:
-                      AppTypography.label.copyWith(color: AppColors.blue)),
+                  style: AppTypography.label.copyWith(color: AppColors.blue)),
             ),
             if (value != null)
               Text(value,
                   style: AppTypography.body.copyWith(color: AppColors.blue)),
             if (onTap != null)
-              Icon(Icons.chevron_right, size: 18.r, color: AppColors.slateGrey),
+              Icon(Icons.chevron_right,
+                  size: 18.r, color: AppColors.slateGrey),
           ],
         ),
       ),
     );
   }
 
-  //Formato de fecha
   String formatDate(String dateString) {
     try {
       final date = DateTime.parse(dateString).toLocal();

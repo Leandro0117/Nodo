@@ -12,6 +12,7 @@ import jobRouter from "./routes/jobsRoutes.js";
 import storageRoutes from "./routes/storageRoutes.js";
 import locationRouter from "./routes/locationsRoutes.js";
 import conversationRouter from "./routes/conversationRoutes.js";
+import reviewRouter from "./routes/reviewsRoutes.js";
 import { setupChatWebSocket } from "./ws/chatWsServer.js";
 
 const app = express();
@@ -29,6 +30,7 @@ app.use(jobRouter);
 app.use(storageRoutes);
 app.use(locationRouter);
 app.use(conversationRouter);
+app.use(reviewRouter);
 
 const PORT = process.env.PORT || 3001;
 const server = createServer(app);

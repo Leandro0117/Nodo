@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nodo/core/theme/app_theme.dart';
 import 'package:nodo/features/chat/screens/chat_1.dart';
+import 'package:nodo/features/rating/logic/rating_service.dart';
+import 'package:nodo/features/rating/widgets/rating_dialog.dart';
+import 'package:nodo/features/rating/widgets/rating_section_widget.dart';
 import 'package:nodo/features/trabajos/logic/job_service.dart';
 import 'package:nodo/features/trabajos/screens/report_screen.dart';
 import 'package:nodo/shared/providers/user_provider.dart';
@@ -34,6 +37,13 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   bool _workerHasConfirmed = false;
   bool _clientHasConfirmed = false;
+  bool _serviceCompleted = false;
+
+  // — Calificación —
+  String? _serviceId;
+  String? _ratedUserId;   // ID del usuario que el trabajador debe calificar (cliente)
+  bool _hasRated = false;
+  int _myScore = 0;
 
   @override
   void initState() {
@@ -48,6 +58,35 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         service?['workerCompletionRequest'] as bool? ?? false;
     _clientHasConfirmed =
         service?['clientCompletionRequest'] as bool? ?? false;
+    _serviceCompleted = service?['status']?.toString() == 'completed';
+
+    _serviceId = service?['id']?.toString();
+    // El cliente está en postulacion['post']['clientId'] o en job['clientId']
+    final post = widget.postulacion?['post'] as Map<String, dynamic>?;
+    _ratedUserId = post?['clientId']?.toString();
+
+    if (_serviceCompleted && _serviceId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadMyRating());
+    }
+  }
+
+  String get _nombreSolo {
+    final nombre = widget.job['user']?.toString() ?? 'Cliente';
+    return nombre.contains(':') ? nombre.split(':').last.trim() : nombre;
+  }
+
+  Future<void> _loadMyRating() async {
+    final userId =
+        Provider.of<UserProvider>(context, listen: false).user?.id ?? '';
+    if (_serviceId == null || userId.isEmpty) return;
+    final rating = await RatingService.getMyRating(_serviceId!, userId);
+    if (!mounted) return;
+    if (rating != null) {
+      setState(() {
+        _hasRated = true;
+        _myScore = (rating['score'] as num?)?.toInt() ?? 0;
+      });
+    }
   }
 
   @override
@@ -140,7 +179,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           Icons.attach_money, 'Presupuesto', presupuesto),
                     _buildInfoRow(
                         Icons.person_outline, 'Cliente', clienteNombre),
-                    if (estadoPostulacion == 'accepted') ...[
+                    if (estadoPostulacion == 'accepted' && !_serviceCompleted) ...[
                       SizedBox(height: 16.h),
                       _buildCompletionStatusPanel(nombreSolo),
                     ],
@@ -435,7 +474,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       );
     }
 
-    // Trabajo aceptado
+    // Trabajo aceptado y servicio ya completado → ver chat + calificación
+    if (estadoPostulacion == 'accepted' && _serviceCompleted) {
+      final userId =
+          Provider.of<UserProvider>(context, listen: false).user?.id ?? '';
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: _actionButton(
+              Icons.chat_bubble_outline_rounded,
+              'Ver chat',
+              AppColors.blue,
+              AppColors.blue.withValues(alpha: 0.1),
+              () => _openChat(nombreSolo, readOnly: true),
+            ),
+          ),
+          if (_serviceId != null && _ratedUserId != null) ...[
+            SizedBox(height: 12.h),
+            RatingSectionWidget(
+              serviceId: _serviceId!,
+              raterId: userId,
+              ratedId: _ratedUserId!,
+              ratedName: nombreSolo,
+              hasRated: _hasRated,
+              myScore: _myScore,
+              onRated: () => setState(() {
+                _hasRated = true;
+                _myScore = 0; // se actualizará en el próximo _loadMyRating
+                _loadMyRating();
+              }),
+            ),
+          ],
+        ],
+      );
+    }
+
+    // Trabajo aceptado en curso
     if (estadoPostulacion == 'accepted') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -463,17 +539,19 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               ),
             ),
           ],
-          SizedBox(height: 10.h),
-          SizedBox(
-            width: double.infinity,
-            child: _actionButton(
-              Icons.cancel_outlined,
-              'Cancelar trabajo',
-              AppColors.error,
-              AppColors.error.withValues(alpha: 0.1),
-              _cancelJob,
+          if (!_workerHasConfirmed && !_clientHasConfirmed) ...[
+            SizedBox(height: 10.h),
+            SizedBox(
+              width: double.infinity,
+              child: _actionButton(
+                Icons.cancel_outlined,
+                'Cancelar trabajo',
+                AppColors.error,
+                AppColors.error.withValues(alpha: 0.1),
+                _cancelJob,
+              ),
             ),
-          ),
+          ],
         ],
       );
     }
@@ -492,8 +570,22 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       );
     }
 
+    // Trabajo finalizado
+    if (estadoPostulacion == 'finished') {
+      return SizedBox(
+        width: double.infinity,
+        child: _actionButton(
+          Icons.chat_bubble_outline_rounded,
+          'Ver chat',
+          AppColors.blue,
+          AppColors.blue.withValues(alpha: 0.1),
+          () => _openChat(nombreSolo, readOnly: true),
+        ),
+      );
+    }
+
     // Rechazada / retirada
-    if (estadoPostulacion.isNotEmpty && estadoPostulacion != 'finished') {
+    if (estadoPostulacion.isNotEmpty) {
       return SizedBox(
         width: double.infinity,
         child: _actionButton(
@@ -541,7 +633,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  void _openChat(String nombreSolo) {
+  void _openChat(String nombreSolo, {bool readOnly = false}) {
     final userId =
         Provider.of<UserProvider>(context, listen: false).user?.id ?? '';
     Navigator.push(
@@ -551,6 +643,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           applicationId: widget.postulacion!['id'] as String,
           currentUserId: userId,
           otherPersonName: nombreSolo,
+          readOnly: readOnly,
         ),
       ),
     );
@@ -563,6 +656,19 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       if (!mounted) return;
       final completed = result['completed'] as bool? ?? false;
       if (completed) {
+        // Opción 1: mostrar modal de calificación antes de salir
+        final userId =
+            Provider.of<UserProvider>(context, listen: false).user?.id ?? '';
+        if (_serviceId != null && _ratedUserId != null && userId.isNotEmpty) {
+          await showRatingDialog(
+            context: context,
+            serviceId: _serviceId!,
+            raterId: userId,
+            ratedId: _ratedUserId!,
+            ratedName: _nombreSolo,
+          );
+        }
+        if (!mounted) return;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
