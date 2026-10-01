@@ -8,10 +8,11 @@ import {
     updateApplication,
     deleteApplication
 } from '../controllers/applicationController.js';
+import { requireActiveUser } from '../utils/requireActiveUser.js';
 
 const applicationRouter = Router ();
 
-applicationRouter.post('/api/apply', apply);
+applicationRouter.post('/api/apply', requireActiveUser((req) => req.body?.workerId), apply);
 applicationRouter.get('/api/application/:id', getApplication);
 applicationRouter.get('/api/applications', getApplications);
 applicationRouter.get('/api/applicationsByUserId/:id', getApplicationsByUserId);

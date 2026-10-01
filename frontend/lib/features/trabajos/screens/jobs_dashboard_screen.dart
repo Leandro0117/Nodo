@@ -204,12 +204,11 @@ class _JobsDashboardScreenState extends State<JobsDashboardScreen> {
         .where((pub) => !_postulaciones.any((p) => p['postId'] == pub['id']))
         .toList();
     final disponiblesCount = _applyFilter(disponiblesRaw).length;
-    final postulacionesCount = _postulaciones
-        .where((p) => p['status'] != 'accepted' && p['status'] != 'finished')
-        .length;
-    final misTrabajosCount = _postulaciones
-        .where((p) => p['status'] == 'accepted' || p['status'] == 'finished')
-        .length;
+    // Salen de las mismas listas que se muestran, sin contar las que ya no
+    // están disponibles: así el número siempre coincide con lo que se ve.
+    final postulacionesCount =
+        _contarDisponibles(_postulacionItems((s) => !_esTrabajo(s)));
+    final misTrabajosCount = _contarDisponibles(_postulacionItems(_esTrabajo));
     final counts = [disponiblesCount, postulacionesCount, misTrabajosCount];
 
     return Scaffold(
@@ -446,18 +445,33 @@ class _JobsDashboardScreenState extends State<JobsDashboardScreen> {
     );
   }
 
-  Widget _buildPostulacionesList() {
+  static bool _esTrabajo(String status) =>
+      status == 'accepted' || status == 'finished';
+
+  static bool _disponible(Map<String, dynamic> item) =>
+      item['pub']['available'] != false;
+
+  static int _contarDisponibles(List<Map<String, dynamic>> items) =>
+      items.where(_disponible).length;
+
+  /// Cada postulación trae su publicación en `post`. No se buscan en
+  /// `_publicaciones`: ese feed solo tiene los rubros actuales del trabajador
+  /// y las publicaciones de cuentas activas, y lo que no aparece ahí se perdía.
+  /// Las que ya no están disponibles van al final.
+  List<Map<String, dynamic>> _postulacionItems(
+      bool Function(String status) incluir) {
     final items = _postulaciones
-        .where((p) => p['status'] != 'accepted' && p['status'] != 'finished')
-        .map((p) {
-          final pub = _publicaciones.firstWhere(
-              (pub) => pub['id'] == p['postId'],
-              orElse: () => null);
-          if (pub == null) return null;
-          return {'pub': pub, 'postulacion': p};
-        })
-        .whereType<Map<String, dynamic>>()
+        .where((p) =>
+            p['post'] != null && incluir(p['status']?.toString() ?? ''))
+        .map((p) => <String, dynamic>{'pub': p['post'], 'postulacion': p})
         .toList();
+    final disponibles = items.where(_disponible);
+    final noDisponibles = items.where((i) => !_disponible(i));
+    return [...disponibles, ...noDisponibles];
+  }
+
+  Widget _buildPostulacionesList() {
+    final items = _postulacionItems((s) => !_esTrabajo(s));
 
     return RefreshIndicator(
       onRefresh: _loadPostulaciones,
@@ -474,30 +488,15 @@ class _JobsDashboardScreenState extends State<JobsDashboardScreen> {
                     )
                   : PostulacionList(
                       items: items,
-                      nombresClientes: _nombresClientes,
-                      onVerDetalles: (pub, nombre) {
-                        final postulacion = _postulaciones.firstWhere(
-                          (p) => p['postId'] == pub['id'],
-                          orElse: () => null,
-                        );
-                        _mostrarDetalleTrabajo(pub, nombre, postulacion, true);
-                      },
+                      onVerDetalles: (pub, postulacion, nombre) =>
+                          _mostrarDetalleTrabajo(
+                              pub, nombre, postulacion, true),
                     ),
     );
   }
 
   Widget _buildMisTrabajosList() {
-    final items = _postulaciones
-        .where((p) => p['status'] == 'accepted' || p['status'] == 'finished')
-        .map((p) {
-          final pub = _publicaciones.firstWhere(
-              (pub) => pub['id'] == p['postId'],
-              orElse: () => null);
-          if (pub == null) return null;
-          return {'pub': pub, 'postulacion': p};
-        })
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    final items = _postulacionItems(_esTrabajo);
 
     return RefreshIndicator(
       onRefresh: _loadAllData,
@@ -514,14 +513,9 @@ class _JobsDashboardScreenState extends State<JobsDashboardScreen> {
                     )
                   : PostulacionList(
                       items: items,
-                      nombresClientes: _nombresClientes,
-                      onVerDetalles: (pub, nombre) {
-                        final postulacion = _postulaciones.firstWhere(
-                          (p) => p['postId'] == pub['id'],
-                          orElse: () => null,
-                        );
-                        _mostrarDetalleTrabajo(pub, nombre, postulacion, true);
-                      },
+                      onVerDetalles: (pub, postulacion, nombre) =>
+                          _mostrarDetalleTrabajo(
+                              pub, nombre, postulacion, true),
                     ),
     );
   }

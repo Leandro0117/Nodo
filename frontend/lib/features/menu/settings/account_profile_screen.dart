@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:nodo/core/services/user_service.dart';
 import 'package:nodo/core/theme/app_theme.dart';
+import 'package:nodo/shared/providers/user_provider.dart';
+import 'package:provider/provider.dart';
 import 'widgets/settings_sub_header.dart';
 
 class AccountProfileScreen extends StatefulWidget {
@@ -46,11 +49,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                 SizedBox(height: 12.h),
                 _card([
                   _tile(
-                    icon: Icons.delete_outline_rounded,
+                    icon: Icons.person_off_outlined,
                     color: AppColors.error,
-                    title: 'Eliminar cuenta',
+                    title: 'Desactivar cuenta',
                     subtitle: 'Esta acción es permanente e irreversible',
-                    onTap: _deleteModal,
+                    onTap: _deactivateModal,
                     titleColor: AppColors.error,
                   ),
                 ]),
@@ -220,12 +223,82 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     );
   }
 
-  void _deleteModal() {
+  void _deactivateModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (_) => const _DeactivateAccountSheet(),
+    );
+  }
+}
+
+/// Pide la contraseña antes de desactivar: la acción no se puede deshacer, así
+/// que un toque accidental no debe bastar.
+class _DeactivateAccountSheet extends StatefulWidget {
+  const _DeactivateAccountSheet();
+
+  @override
+  State<_DeactivateAccountSheet> createState() =>
+      _DeactivateAccountSheetState();
+}
+
+class _DeactivateAccountSheetState extends State<_DeactivateAccountSheet> {
+  final _passwordCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _deactivate() async {
+    final password = _passwordCtrl.text;
+    if (password.isEmpty) {
+      setState(() => _error = 'Escribe tu contraseña para continuar.');
+      return;
+    }
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.user?.id;
+    if (userId == null) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      await UserService().deactivateAccount(userId, password);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+      return;
+    }
+
+    // La cuenta ya no existe para el servidor: se cierra la sesión local y se
+    // vuelve al login sin dejar pantallas atrás.
+    await userProvider.logout();
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context, rootNavigator: true)
+        .pushNamedAndRemoveUntil('/login', (route) => false);
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Tu cuenta fue desactivada.'),
+      backgroundColor: AppColors.success,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
         padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 32.h),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -253,16 +326,39 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                   color: AppColors.error, size: 36.r),
             ),
             SizedBox(height: 16.h),
-            Text('Eliminar cuenta',
-                style:
-                    AppTypography.title.copyWith(color: AppColors.error)),
+            Text('Desactivar cuenta',
+                style: AppTypography.title.copyWith(color: AppColors.error)),
             SizedBox(height: 8.h),
             Text(
-              'Esta acción es PERMANENTE. Perderás tu perfil, publicaciones, historial, calificaciones y todos tus datos en NODO.',
+              'Esta acción es PERMANENTE. Tus publicaciones dejarán de verse y '
+              'tus datos personales se borrarán de NODO. Podrás registrarte de '
+              'nuevo, pero no recuperarás tu historial ni tu calificación.',
               style: AppTypography.body.copyWith(color: AppColors.slateGrey),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 20.h),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: true,
+              enabled: !_loading,
+              style: AppTypography.body,
+              onSubmitted: (_) => _deactivate(),
+              decoration: InputDecoration(
+                labelText: 'Confirma con tu contraseña',
+                labelStyle:
+                    AppTypography.body.copyWith(color: AppColors.slateGrey),
+                errorText: _error,
+                errorMaxLines: 3,
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.error, width: 1.5),
+                ),
+              ),
+            ),
+            SizedBox(height: 20.h),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -273,15 +369,22 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                       borderRadius: BorderRadius.circular(12)),
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                 ),
-                onPressed: () => Navigator.pop(context),
-                child: Text('Eliminar mi cuenta',
-                    style: AppTypography.label
-                        .copyWith(color: AppColors.white)),
+                onPressed: _loading ? null : _deactivate,
+                child: _loading
+                    ? SizedBox(
+                        height: 18.r,
+                        width: 18.r,
+                        child: const CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.white),
+                      )
+                    : Text('Desactivar mi cuenta',
+                        style: AppTypography.label
+                            .copyWith(color: AppColors.white)),
               ),
             ),
             SizedBox(height: 8.h),
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _loading ? null : () => Navigator.pop(context),
               child: Text('Cancelar',
                   style: AppTypography.label
                       .copyWith(color: AppColors.slateGrey)),

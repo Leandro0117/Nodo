@@ -5,14 +5,15 @@ import 'package:nodo/features/posts/utils/post_format_utils.dart';
 import 'package:nodo/features/trabajos/logic/job_service.dart';
 
 class PostulacionList extends StatelessWidget {
-  /// Cada item es `{'pub': {...}, 'postulacion': {...}}`.
+  /// Cada item es `{'pub': {...}, 'postulacion': {...}}`. `pub` es la
+  /// publicación que el backend envía con la postulación: trae `clientName`
+  /// y `available` (false si su dueño ya no está activo).
   final List<Map<String, dynamic>> items;
-  final Map<String, String> nombresClientes;
-  final void Function(dynamic pub, String nombre) onVerDetalles;
+  final void Function(dynamic pub, dynamic postulacion, String nombre)
+      onVerDetalles;
 
   const PostulacionList({
     required this.items,
-    required this.nombresClientes,
     required this.onVerDetalles,
     super.key,
   });
@@ -26,12 +27,15 @@ class PostulacionList extends StatelessWidget {
       itemBuilder: (_, i) {
         final pub = items[i]['pub'];
         final post = items[i]['postulacion'];
-        final nombre = nombresClientes[pub['clientId']?.toString()] ?? 'Cliente';
+        final nombre = pub['clientName']?.toString() ?? 'Cliente';
+        final disponible = pub['available'] != false;
         return _PostulacionCard(
           publicacion: pub,
           postulacion: post,
           nombreCliente: nombre,
-          onTap: () => onVerDetalles(pub, nombre),
+          disponible: disponible,
+          // La publicación ya no existe para nadie más: no hay detalle que abrir.
+          onTap: disponible ? () => onVerDetalles(pub, post, nombre) : null,
         );
       },
     );
@@ -42,12 +46,14 @@ class _PostulacionCard extends StatelessWidget {
   final dynamic publicacion;
   final dynamic postulacion;
   final String nombreCliente;
-  final VoidCallback onTap;
+  final bool disponible;
+  final VoidCallback? onTap;
 
   const _PostulacionCard({
     required this.publicacion,
     required this.postulacion,
     required this.nombreCliente,
+    required this.disponible,
     required this.onTap,
   });
 
@@ -70,107 +76,112 @@ class _PostulacionCard extends StatelessWidget {
         ? (categories[0]['specificCategory']?['name'] ?? '')
         : '';
 
-    final statusMeta = _statusMeta(_status);
+    final statusMeta = disponible
+        ? _statusMeta(_status)
+        : (label: 'Ya no disponible', color: AppColors.slateGrey);
 
     return GestureDetector(
       onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.blue.withValues(alpha: 0.07),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(12.r),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 72.w,
-                  height: 72.w,
-                  child: imageUrl != null
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
-                          loadingBuilder: (_, child, progress) =>
-                              progress == null ? child : _placeholder(),
-                        )
-                      : _placeholder(),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Título + status badge
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            titulo,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.blue,
-                              fontFamily: 'GothamMedium',
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        _StatusChip(
-                            label: statusMeta.label, color: statusMeta.color),
-                      ],
-                    ),
-                    if (categoria.isNotEmpty) ...[
-                      SizedBox(height: 4.h),
-                      _MetaRow(Icons.category_outlined, categoria),
-                    ],
-                    if (ubicacion.isNotEmpty) ...[
-                      SizedBox(height: 3.h),
-                      _MetaRow(Icons.location_on_outlined, ubicacion),
-                    ],
-                    SizedBox(height: 6.h),
-                    Row(
-                      children: [
-                        _MetaRow(Icons.access_time_rounded, tiempo),
-                        const Spacer(),
-                        if (budget != null)
-                          Text(
-                            '\$${formatBudget(budget)}',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.orange,
-                              fontFamily: 'GothamBold',
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (descripcion.isNotEmpty) ...[
-                      SizedBox(height: 6.h),
-                      Text(
-                        descripcion,
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.slateGrey),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
+      child: Opacity(
+        opacity: disponible ? 1 : 0.6,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.blue.withValues(alpha: 0.07),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
               ),
             ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(12.r),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 72.w,
+                    height: 72.w,
+                    child: imageUrl != null
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                            loadingBuilder: (_, child, progress) =>
+                                progress == null ? child : _placeholder(),
+                          )
+                        : _placeholder(),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Título + status badge
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              titulo,
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.blue,
+                                fontFamily: 'GothamMedium',
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          _StatusChip(
+                              label: statusMeta.label, color: statusMeta.color),
+                        ],
+                      ),
+                      if (categoria.isNotEmpty) ...[
+                        SizedBox(height: 4.h),
+                        _MetaRow(Icons.category_outlined, categoria),
+                      ],
+                      if (ubicacion.isNotEmpty) ...[
+                        SizedBox(height: 3.h),
+                        _MetaRow(Icons.location_on_outlined, ubicacion),
+                      ],
+                      SizedBox(height: 6.h),
+                      Row(
+                        children: [
+                          _MetaRow(Icons.access_time_rounded, tiempo),
+                          const Spacer(),
+                          if (budget != null)
+                            Text(
+                              '\$${formatBudget(budget)}',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.orange,
+                                fontFamily: 'GothamBold',
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (descripcion.isNotEmpty) ...[
+                        SizedBox(height: 6.h),
+                        Text(
+                          descripcion,
+                          style: AppTypography.caption
+                              .copyWith(color: AppColors.slateGrey),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -240,8 +251,7 @@ class _MetaRow extends StatelessWidget {
         Flexible(
           child: Text(
             text,
-            style:
-                AppTypography.caption.copyWith(color: AppColors.slateGrey),
+            style: AppTypography.caption.copyWith(color: AppColors.slateGrey),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

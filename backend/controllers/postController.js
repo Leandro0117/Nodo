@@ -2,9 +2,13 @@ import { prisma } from "../database/prisma.js";
 import { notifyWorkersByCategories } from "../services/notificationService.js";
 import { deleteFolder } from "../services/storageService.js";
 
-const postInclude = { photos: true, categories: { include: { specificCategory: true } } };
+export const postInclude = { photos: true, categories: { include: { specificCategory: true } } };
 
-function serializePost(post) {
+// Las publicaciones no tienen estado propio de cuenta: dejan de verse cuando
+// su dueño deja de estar activo, así que se filtran por él al consultarlas.
+const activeOwner = { client: { status: "active" } };
+
+export function serializePost(post) {
   if (!post) return post;
   return {
     ...post,
@@ -16,7 +20,7 @@ function serializePost(post) {
 
 export const getPosts = async (req, res) => {
   try {
-    const posts = await prisma.post.findMany({ include: postInclude });
+    const posts = await prisma.post.findMany({ where: activeOwner, include: postInclude });
     res.json(posts.map(serializePost));
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error: error.message });
@@ -47,6 +51,7 @@ export const getPostsForWorker = async (req, res) => {
 
     const posts = await prisma.post.findMany({
       where: {
+        ...activeOwner,
         categories: {
           some: { specificCategoryId: { in: specificCategoryIds } },
         },
@@ -63,8 +68,8 @@ export const getPostsForWorker = async (req, res) => {
 
 export const getPost = async (req, res) => {
   try {
-    const post = await prisma.post.findUnique({
-      where: { id: req.params.id },
+    const post = await prisma.post.findFirst({
+      where: { id: req.params.id, ...activeOwner },
       include: postInclude,
     });
 
@@ -83,7 +88,7 @@ export const getPost = async (req, res) => {
 export const getPostsByUserId = async (req, res) => {
   try {
     const posts = await prisma.post.findMany({
-      where: { clientId: req.params.id },
+      where: { clientId: req.params.id, ...activeOwner },
       include: postInclude,
     });
 

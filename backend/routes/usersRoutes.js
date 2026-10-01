@@ -5,11 +5,13 @@ import {
     createUser,
     checkAvailability,
     deleteUser,
+    deactivateUser,
     updateUser,
     activateWorker,
     login,
     resetPassword,
 } from '../controllers/userController.js';
+import { requireActiveUser } from '../utils/requireActiveUser.js';
 
 const userRouter = Router ();
 
@@ -19,8 +21,9 @@ userRouter.post('/api/user', createUser);
 // Antes de enviar el SMS del registro. POST para no poner datos personales en la URL.
 userRouter.post('/api/user/availability', checkAvailability);
 userRouter.delete('/api/user/:id', deleteUser);
-userRouter.put('/api/user/:id', updateUser);
-userRouter.post('/api/activateWorker/:id', activateWorker);
+userRouter.post('/api/user/:id/deactivate', deactivateUser);
+userRouter.put('/api/user/:id', requireActiveUser((req) => req.params.id), updateUser);
+userRouter.post('/api/activateWorker/:id', requireActiveUser((req) => req.params.id), activateWorker);
 userRouter.post('/api/login', login);
 userRouter.post('/api/resetPassword', resetPassword);
 
