@@ -71,6 +71,14 @@ enum DisputeStatus {
   rejected
 }
 
+// under_review queda reservado para cuando exista moderación: por ahora
+// ningún flujo lo asigna, pero ya bloquea el acceso.
+enum UserStatus {
+  active
+  under_review
+  deactivated
+}
+
 enum ReportStatus {
   pending
   reviewed
@@ -123,27 +131,35 @@ model Location {
 // ===== USERS =====
 
 model AppUser {
-  id               String   @id @default(uuid())
-  firstName        String   @map("first_name")
-  lastName         String   @map("last_name")
-  secondLastName   String?  @map("second_last_name")
-  dni              String   @unique
-  email            String   @unique
-  phone            String   @unique
-  birthDate        DateTime @map("birth_date") @db.Date
-  passwordHash     String   @map("password_hash")
-  registrationDate DateTime @default(now()) @map("registration_date")
-  profilePhoto     String?  @map("profile_photo")
-  verified         Boolean  @default(false)
+  id               String     @id @default(uuid())
+  firstName        String     @map("first_name")
+  lastName         String     @map("last_name")
+  secondLastName   String?    @map("second_last_name")
+  dni              String     @unique
+  email            String     @unique
+  phone            String     @unique
+  birthDate        DateTime   @map("birth_date") @db.Date
+  passwordHash     String     @map("password_hash")
+  registrationDate DateTime   @default(now()) @map("registration_date")
+  profilePhoto     String?    @map("profile_photo")
+  verified         Boolean    @default(false)
   location         String?
-  fcmToken         String?  @map("fcm_token")
+  fcmToken         String?    @map("fcm_token")
+  // "¿Puede entrar?". Es distinto de verified ("¿confirmó su celular?").
+  status           UserStatus @default(active)
+  // Usuario que Firebase crea al verificar el celular. Hace falta para
+  // borrarlo al desactivar la cuenta; si ese borrado falla, se conserva
+  // para poder reintentarlo. No es único: Firebase reutiliza el uid de un
+  // número, así que quien vuelve a registrarse con el mismo celular puede
+  // traer el uid que quedó pendiente en su cuenta desactivada.
+  firebaseUid      String?    @map("firebase_uid")
 
   bankAccounts      BankAccount[]
   worker            Worker?
-  posts             Post[]    @relation("ClientPosts")
+  posts             Post[]        @relation("ClientPosts")
   sentMessages      Message[]
-  reviewsGiven      Review[]  @relation("Reviewer")
-  reviewsReceived   Review[]  @relation("Reviewed")
+  reviewsGiven      Review[]      @relation("Reviewer")
+  reviewsReceived   Review[]      @relation("Reviewed")
   disputesInitiated Dispute[]
   reports           Report[]
 
@@ -153,13 +169,13 @@ model AppUser {
 // Any user (client or worker) can register a bank account: workers use it
 // to receive earnings, clients only if a refund needs a manual transfer.
 model BankAccount {
-  id                   String   @id @default(uuid())
-  userId               String   @map("user_id")
+  id                   String      @id @default(uuid())
+  userId               String      @map("user_id")
   bank                 String
   accountType          AccountType @map("account_type")
-  accountNumber        String   @map("account_number")
-  gatewayBeneficiaryId String?  @map("gateway_beneficiary_id")
-  registrationDate     DateTime @default(now()) @map("registration_date")
+  accountNumber        String      @map("account_number")
+  gatewayBeneficiaryId String?     @map("gateway_beneficiary_id")
+  registrationDate     DateTime    @default(now()) @map("registration_date")
 
   user        AppUser      @relation(fields: [userId], references: [id])
   withdrawals Withdrawal[]

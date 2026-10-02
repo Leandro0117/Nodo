@@ -2,9 +2,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../database/prisma.js";
 import { verifyPhoneIdToken } from "../utils/firebase.js";
 import { logRegistro, mask } from "../utils/debugLog.js";
+import { deactivateAccount, cleanUpDeactivatedAccount, ActiveJobsError } from "../services/accountService.js";
 
 // Solo para desarrollo local (por ejemplo, probar desde Bruno sin SMS).
-// Las cuentas creadas así quedan con verified = false.
+// Las cuentas creadas así quedan con verified = false y firebase_uid = null.
 const SKIP_PHONE_VERIFICATION = process.env.DEV_SKIP_PHONE_VERIFICATION === "true";
 if (SKIP_PHONE_VERIFICATION) {
   console.warn(
@@ -113,9 +114,10 @@ export const createUser = async (req, res) => {
     }
 
     let phoneVerified = false;
+    let firebaseUid = null;
     if (data.phoneIdToken) {
       try {
-        const verifiedPhone = await verifyPhoneIdToken(data.phoneIdToken);
+        const { phone: verifiedPhone, uid } = await verifyPhoneIdToken(data.phoneIdToken);
         if (verifiedPhone !== phoneE164) {
           logRegistro(`✗ No coinciden: Firebase verificó ${mask(verifiedPhone)} y el formulario trae ${mask(phoneE164)}`);
           return res.status(401).json({
@@ -123,6 +125,7 @@ export const createUser = async (req, res) => {
           });
         }
         phoneVerified = true;
+        firebaseUid = uid;
         logRegistro("✓ El celular del token coincide con el del formulario");
       } catch (error) {
         logRegistro(`✗ Token rechazado → 401 (${error.code ?? error.message})`);
@@ -152,6 +155,8 @@ export const createUser = async (req, res) => {
         location: data.location ?? null,
         // Por ahora "verified" significa "celular confirmado por SMS".
         verified: phoneVerified,
+        // Para poder borrar ese usuario de Firebase si la cuenta se desactiva.
+        firebaseUid,
       },
     });
 
@@ -240,6 +245,12 @@ export const login = async (req, res) => {
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatches) {
       return res.status(401).json({ messageFail: "Invalid credentials" });
+    }
+
+    // Una cuenta desactivada ya no coincide con ningún correo ni celular, así
+    // que en la práctica esto solo lo alcanza una cuenta en revisión.
+    if (user.status !== "active") {
+      return res.status(403).json({ messageFail: "Account is not active", status: user.status });
     }
 
     return res.status(200).json({
@@ -385,5 +396,51 @@ export const deleteUser = async (req, res) => {
     }
     console.error(error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Irreversible: bloquea la cuenta y reemplaza sus datos personales por valores
+// neutros. Pide la contraseña porque todavía no hay middleware de
+// autenticación: sin ella, cualquiera que conozca el id podría desactivarla.
+export const deactivateUser = async (req, res) => {
+  const userId = req.params.id;
+  const { password } = req.body ?? {};
+
+  if (!password) {
+    return res.status(400).json({ message: "password is required." });
+  }
+
+  try {
+    const user = await prisma.appUser.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true, status: true },
+    });
+    if (!user || user.status === "deactivated") {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatches) {
+      return res.status(401).json({ message: "Invalid password." });
+    }
+
+    const leftovers = await deactivateAccount(userId);
+    console.log(`[desactivar] Cuenta ${userId} desactivada.`);
+
+    // La cuenta ya quedó bloqueada: el resto se limpia sin hacer esperar a la app.
+    cleanUpDeactivatedAccount(userId, leftovers).catch((error) =>
+      console.error(`[desactivar] Limpieza de ${userId} interrumpida:`, error)
+    );
+
+    res.json({ message: "Account deactivated." });
+  } catch (error) {
+    if (error instanceof ActiveJobsError) {
+      return res.status(409).json({
+        message: "Finish your jobs in progress before deactivating the account.",
+        code: "ACTIVE_JOBS",
+      });
+    }
+    console.error("Error deactivating user:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

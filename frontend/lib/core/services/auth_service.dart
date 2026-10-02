@@ -40,6 +40,11 @@ class AuthService {
       throw Exception('Usuario o contraseña incorrectos.');
     }
 
+    if (response.statusCode == 403) {
+      throw Exception(
+          'Tu cuenta no está activa en este momento. Escríbenos si crees que es un error.');
+    }
+
     throw Exception('Ocurrió un error al iniciar sesión. Intenta de nuevo.');
   }
 

@@ -1,5 +1,6 @@
 import { prisma } from "../database/prisma.js";
 import { saveNotification } from "../services/notificationService.js";
+import { postInclude, serializePost } from "./postController.js";
 
 // Business rule (not expressible as a constraint): a worker can re-apply to
 // the same post if their last application was 'withdrawn', but NOT if it
@@ -8,7 +9,8 @@ export const apply = async (req, res) => {
   const { postId, workerId } = req.body;
 
   try {
-    const post = await prisma.post.findUnique({ where: { id: postId } });
+    // La publicación de una cuenta que ya no está activa no admite postulaciones.
+    const post = await prisma.post.findFirst({ where: { id: postId, client: { status: "active" } } });
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
@@ -79,13 +81,36 @@ export const getApplicationsByUserId = async (req, res) => {
   try {
     const applications = await prisma.application.findMany({
       where: { workerId: req.params.id },
+      include: {
+        post: {
+          include: { ...postInclude, client: { select: { firstName: true, status: true } } },
+        },
+      },
     });
 
     if (applications.length === 0) {
       return res.status(204).json({ message: "No records found" });
     }
 
-    res.status(200).json(applications);
+    // El trabajador conserva su historial aunque el dueño de la publicación ya
+    // no esté activo: se le muestra como "no disponible" en vez de ocultarla.
+    // Esas publicaciones no traen fotos (ya se borraron de Storage) ni
+    // descripción (puede tener datos que identifiquen a quien se fue).
+    const withPosts = applications.map(({ post, ...application }) => {
+      const { client, ...rest } = post;
+      const available = client.status === "active";
+      return {
+        ...application,
+        post: {
+          ...serializePost(rest),
+          ...(available ? {} : { description: null, photos: [] }),
+          clientName: client.firstName,
+          available,
+        },
+      };
+    });
+
+    res.status(200).json(withPosts);
   } catch (error) {
     if (!res.headersSent) {
       res.status(500).json({ message: error.message });

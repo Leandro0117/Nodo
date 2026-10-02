@@ -14,6 +14,8 @@ class ApiConstants {
       id == null ? "$baseUrl/user" : "$baseUrl/user/$id";
   // Antes de enviar el SMS del registro: ¿cédula, correo y celular libres?
   static String get userAvailability => "$baseUrl/user/availability";
+  // Irreversible: bloquea la cuenta y borra sus datos personales.
+  static String deactivateUser(String id) => "$baseUrl/user/$id/deactivate";
   static String activateWorker(String id) => "$baseUrl/activateWorker/$id";
   static String get workerByUserId => "$baseUrl/workerByUserId";
 

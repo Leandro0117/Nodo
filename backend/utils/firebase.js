@@ -47,8 +47,9 @@ export default bucket;
 
 /**
  * Verifica el ID token que la app obtiene de Firebase después de confirmar
- * el código SMS. Devuelve el teléfono verificado en formato E.164
- * (+573001234567). Lanza un error si el token es inválido, venció, es de otro
+ * el código SMS. Devuelve { phone, uid }: el teléfono verificado en formato
+ * E.164 (+573001234567) y el uid del usuario que Firebase creó para esa
+ * verificación. Lanza un error si el token es inválido, venció, es de otro
  * proyecto o no proviene de un inicio de sesión por teléfono.
  */
 export async function verifyPhoneIdToken(idToken) {
@@ -73,7 +74,25 @@ export async function verifyPhoneIdToken(idToken) {
     throw new Error('The token does not come from a phone sign-in.');
   }
 
-  return decoded.phone_number;
+  return { phone: decoded.phone_number, uid: decoded.uid };
+}
+
+/**
+ * Borra el usuario que Firebase creó al verificar el celular, y con él el
+ * número guardado allá. Un usuario que ya no existe cuenta como borrado.
+ * Sin credencial no se puede borrar: lanza un error para que el caller
+ * conserve el uid y lo reintente más adelante.
+ */
+export async function deleteFirebaseUser(uid) {
+  if (!firebaseEnabled) {
+    throw new Error('Firebase sin credencial: no se puede borrar el usuario.');
+  }
+
+  try {
+    await admin.auth().deleteUser(uid);
+  } catch (error) {
+    if (error.code !== 'auth/user-not-found') throw error;
+  }
 }
 
 // Con estos códigos FCM avisa que el token ya no sirve: la app se desinstaló o
